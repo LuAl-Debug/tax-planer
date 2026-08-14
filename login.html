@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>เข้าสู่ระบบ — Smart Tax Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* ===== RESET & VARIABLES ===== */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f0e8;
+  --surface:#fdfaf5;
+  --surface2:#f0ebe0;
+  --surface3:#e8e0d0;
+  --glass:rgba(255,255,255,0.70);
+  --glass-border:rgba(180,160,120,0.18);
+  --accent:#7aab8a;
+  --accent2:#e8956d;
+  --accent3:#d4956a;
+  --danger:#d9534f;
+  --text:#2d2a24;
+  --text2:#5a5248;
+  --text3:#9a9080;
+  --radius:22px;
+  --radius-sm:14px;
+  --shadow:0 4px 24px rgba(100,80,50,0.10);
+  --transition:.2s ease;
+}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Sarabun',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow-x:hidden;
+  padding:20px;
+}
+/* Animated background blobs */
+body::before{
+  content:'';position:fixed;inset:0;
+  background:
+    radial-gradient(ellipse 80% 60% at 10% 0%, rgba(122,171,138,0.14) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 80% at 90% 100%, rgba(232,149,109,0.12) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 40% at 50% 50%, rgba(212,195,160,0.08) 0%, transparent 70%);
+  pointer-events:none;z-index:0;
+  animation:blobDrift 12s ease-in-out infinite alternate;
+}
+@keyframes blobDrift{
+  0%{transform:scale(1) translate(0,0);}
+  100%{transform:scale(1.05) translate(-1%,1%);}
+}
+
+/* ===== CARD ===== */
+.auth-card{
+  position:relative;z-index:1;
+  width:100%;max-width:440px;
+  background:var(--surface);
+  border:1px solid var(--glass-border);
+  border-radius:var(--radius);
+  padding:40px 36px;
+  box-shadow:var(--shadow);
+  animation:slideUp .5s cubic-bezier(.4,0,.2,1) forwards;
+}
+@keyframes slideUp{
+  from{opacity:0;transform:translateY(24px);}
+  to{opacity:1;transform:translateY(0);}
+}
+
+/* ===== LOGO ===== */
+.auth-logo{display:flex;align-items:center;gap:12px;margin-bottom:28px;}
+.logo-icon{
+  width:48px;height:48px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  border-radius:16px;display:flex;align-items:center;justify-content:center;
+  font-size:24px;flex-shrink:0;
+  box-shadow:0 4px 20px rgba(122,171,138,0.30);
+}
+.logo-text h1{
+  font-family:'Space Mono',monospace;font-size:17px;font-weight:700;letter-spacing:-0.5px;
+  background:linear-gradient(90deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  line-height:1.2;
+}
+.logo-text p{font-size:12px;color:var(--text3);margin-top:3px;}
+
+/* ===== TABS ===== */
+.auth-tabs{
+  display:flex;gap:0;margin-bottom:28px;
+  background:var(--surface2);border-radius:var(--radius-sm);padding:3px;
+}
+.auth-tab{
+  flex:1;padding:10px;text-align:center;font-size:14px;font-weight:600;
+  border-radius:8px;cursor:pointer;border:none;background:none;
+  color:var(--text3);transition:all .25s;font-family:'Sarabun',sans-serif;
+  position:relative;
+}
+.auth-tab.active{background:var(--accent);color:#fff;box-shadow:0 2px 12px rgba(122,171,138,0.30);}
+.auth-tab:not(.active):hover{color:var(--text2);}
+
+/* ===== FORM PANEL ===== */
+.form-panel{display:none;animation:fadeIn .3s ease;}
+.form-panel.active{display:block;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+
+/* ===== FIELD ===== */
+.field{margin-bottom:16px;}
+.field label{
+  display:block;font-size:12px;font-weight:700;
+  color:var(--text2);margin-bottom:7px;letter-spacing:.3px;text-transform:uppercase;
+}
+.input-wrap{position:relative;}
+.field input{
+  width:100%;background:var(--surface2);
+  border:1.5px solid var(--glass-border);
+  border-radius:var(--radius-sm);color:var(--text);
+  font-family:'Sarabun',sans-serif;font-size:15px;
+  padding:12px 44px 12px 16px;
+  transition:border-color .2s,box-shadow .2s,background .2s;
+}
+.field input:focus{
+  outline:none;
+  border-color:var(--accent);
+  box-shadow:0 0 0 3px rgba(122,171,138,0.15);
+  background:rgba(122,171,138,0.03);
+}
+.field input.error-input{border-color:var(--danger)!important;box-shadow:0 0 0 3px rgba(217,83,79,0.12)!important;}
+.field input::placeholder{color:var(--text3);}
+.field-icon{
+  position:absolute;right:14px;top:50%;transform:translateY(-50%);
+  font-size:17px;pointer-events:none;opacity:.5;
+}
+.toggle-pw{
+  position:absolute;right:14px;top:50%;transform:translateY(-50%);
+  background:none;border:none;cursor:pointer;font-size:16px;
+  color:var(--text3);padding:2px;transition:color .2s;
+}
+.toggle-pw:hover{color:var(--text);}
+.field-err{font-size:12px;color:var(--danger);margin-top:5px;display:none;}
+
+/* ===== REMEMBER ME ===== */
+.remember-row{
+  display:flex;align-items:center;gap:8px;
+  margin-bottom:20px;cursor:pointer;user-select:none;
+}
+.remember-row input[type=checkbox]{
+  width:17px;height:17px;cursor:pointer;
+  accent-color:var(--accent);border-radius:4px;
+}
+.remember-row span{font-size:13px;color:var(--text2);}
+
+/* ===== SUBMIT BUTTON ===== */
+.btn-submit{
+  width:100%;padding:14px;font-size:15px;font-weight:700;
+  background:linear-gradient(135deg,var(--accent),#5d9470);
+  color:#fff;border:none;border-radius:var(--radius-sm);
+  cursor:pointer;font-family:'Sarabun',sans-serif;
+  transition:all .25s;letter-spacing:.2px;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.btn-submit:hover:not(:disabled){
+  transform:translateY(-2px);
+  box-shadow:0 6px 24px rgba(122,171,138,0.4);
+}
+.btn-submit:disabled{opacity:.6;cursor:not-allowed;transform:none;}
+
+/* ===== DIVIDER ===== */
+.divider{
+  text-align:center;color:var(--text3);font-size:12px;
+  margin:18px 0;position:relative;
+}
+.divider::before,.divider::after{
+  content:'';position:absolute;top:50%;
+  width:calc(50% - 24px);height:1px;background:var(--glass-border);
+}
+.divider::before{left:0;}
+.divider::after{right:0;}
+
+/* ===== GOOGLE SIGN-IN ===== */
+.btn-google{
+  width:100%;padding:13px;font-size:14px;font-weight:600;
+  background:var(--glass);border:1.5px solid var(--glass-border);
+  color:var(--text);border-radius:var(--radius-sm);cursor:pointer;
+  font-family:'Sarabun',sans-serif;transition:all .2s;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+}
+.btn-google:hover{background:rgba(122,171,138,0.10);border-color:rgba(122,171,138,0.30);}
+.google-icon{
+  width:20px;height:20px;flex-shrink:0;
+}
+
+/* ===== ERROR BANNER ===== */
+.error-banner{
+  background:rgba(217,83,79,0.07);border:1px solid rgba(217,83,79,0.22);
+  border-radius:var(--radius-sm);padding:11px 14px;
+  font-size:13px;color:var(--danger);
+  margin-bottom:16px;display:none;
+  animation:fadeIn .2s ease;
+}
+.error-banner.show{display:block;}
+
+/* ===== SUCCESS BANNER ===== */
+.success-banner{
+  background:rgba(122,171,138,0.08);border:1px solid rgba(122,171,138,0.25);
+  border-radius:var(--radius-sm);padding:11px 14px;
+  font-size:13px;color:var(--accent);
+  margin-bottom:16px;display:none;text-align:center;
+}
+.success-banner.show{display:block;}
+
+/* ===== SPINNER ===== */
+.spinner{
+  width:18px;height:18px;border:2.5px solid rgba(255,255,255,0.4);
+  border-top-color:#fff;border-radius:50%;
+  animation:spin .7s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ===== STRENGTH BAR ===== */
+.strength-bar{
+  height:3px;background:var(--surface3);border-radius:2px;
+  margin-top:6px;overflow:hidden;display:none;
+}
+.strength-fill{height:100%;border-radius:2px;transition:width .4s,background .4s;width:0%;}
+.strength-label{font-size:11px;color:var(--text3);margin-top:4px;display:none;}
+
+/* ===== PASSWORD REQUIREMENTS ===== */
+.pw-reqs{
+  font-size:11px;color:var(--text3);margin-top:6px;
+  display:none;line-height:1.8;
+}
+.req{display:flex;align-items:center;gap:5px;}
+.req.met{color:var(--accent);}
+.req-icon{width:14px;text-align:center;}
+
+/* ===== FOOTER ===== */
+.auth-footer{
+  margin-top:24px;text-align:center;
+  font-size:12px;color:var(--text3);
+}
+.auth-footer a{color:var(--accent);text-decoration:none;}
+.auth-footer a:hover{text-decoration:underline;}
+
+/* ===== LOADING OVERLAY ===== */
+.page-loader{
+  position:fixed;inset:0;z-index:9999;
+  background:var(--bg);
+  display:flex;align-items:center;justify-content:center;
+  flex-direction:column;gap:16px;
+  transition:opacity .4s;
+}
+.page-loader.hide{opacity:0;pointer-events:none;}
+.loader-logo{font-size:40px;animation:pulse 1.5s infinite;}
+@keyframes pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.12);}}
+.loader-text{
+  font-family:'Space Mono',monospace;font-size:13px;color:var(--text3);
+}
+
+/* Firebase error toast */
+.toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);
+  background:var(--surface);border:1px solid var(--glass-border);
+  border-radius:var(--radius-sm);padding:14px 20px;
+  font-size:14px;color:var(--text);box-shadow:var(--shadow);
+  opacity:0;transition:all .3s cubic-bezier(.4,0,.2,1);
+  display:flex;align-items:center;gap:10px;max-width:380px;
+  white-space:nowrap;z-index:10000;
+}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
+</style>
+</head>
+<body>
+
+<!-- Page Loader (while Firebase initializes) -->
+<div class="page-loader" id="page-loader">
+  <div class="loader-logo">💰</div>
+  <div class="loader-text">กำลังโหลด...</div>
+</div>
+
+<!-- Auth Card -->
+<div class="auth-card">
+
+  <div class="auth-logo">
+    <div class="logo-icon">💰</div>
+    <div class="logo-text">
+      <h1>SMART TAX PLANNER</h1>
+      <p>วางแผนภาษีเงินได้บุคคลธรรมดา · ประเทศไทย</p>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="auth-tabs">
+    <button class="auth-tab active" id="tab-login" onclick="switchTab('login')">🔑 เข้าสู่ระบบ</button>
+    <button class="auth-tab" id="tab-register" onclick="switchTab('register')">✨ สมัครสมาชิก</button>
+  </div>
+
+  <!-- ===== LOGIN FORM ===== -->
+  <div class="form-panel active" id="panel-login">
+    <div class="error-banner" id="login-error"></div>
+    <div class="success-banner" id="login-success"></div>
+
+    <div class="field">
+      <label>อีเมล</label>
+      <div class="input-wrap">
+        <input type="email" id="login-email" placeholder="yourname@email.com" autocomplete="email"
+          onkeydown="if(event.key==='Enter')doLogin()">
+        <span class="field-icon">✉️</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>รหัสผ่าน</label>
+      <div class="input-wrap">
+        <input type="password" id="login-password" placeholder="รหัสผ่านของคุณ" autocomplete="current-password"
+          onkeydown="if(event.key==='Enter')doLogin()">
+        <button class="toggle-pw" type="button" onclick="togglePassword('login-password',this)" tabindex="-1">👁</button>
+      </div>
+    </div>
+
+    <label class="remember-row">
+      <input type="checkbox" id="remember-me">
+      <span>จำฉันไว้ในอุปกรณ์นี้</span>
+    </label>
+
+    <button class="btn-submit" id="btn-login" onclick="doLogin()">
+      <span id="login-btn-text">เข้าสู่ระบบ</span>
+    </button>
+
+    <div class="divider">หรือ</div>
+
+    <button class="btn-google" onclick="signInWithGoogle()">
+      <svg class="google-icon" viewBox="0 0 24 24">
+        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+      </svg>
+      เข้าสู่ระบบด้วย Google
+    </button>
+
+    <div class="auth-footer" style="margin-top:16px;">
+      ลืมรหัสผ่าน? <a href="#" onclick="resetPassword();return false;">รีเซ็ตรหัสผ่าน</a>
+    </div>
+  </div>
+
+  <!-- ===== REGISTER FORM ===== -->
+  <div class="form-panel" id="panel-register">
+    <div class="error-banner" id="reg-error"></div>
+    <div class="success-banner" id="reg-success"></div>
+
+    <div class="field">
+      <label>ชื่อ-นามสกุล</label>
+      <div class="input-wrap">
+        <input type="text" id="reg-name" placeholder="ชื่อของคุณ" autocomplete="name"
+          onkeydown="if(event.key==='Enter')doRegister()">
+        <span class="field-icon">👤</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>อีเมล</label>
+      <div class="input-wrap">
+        <input type="email" id="reg-email" placeholder="yourname@email.com" autocomplete="email"
+          onkeydown="if(event.key==='Enter')doRegister()">
+        <span class="field-icon">✉️</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>รหัสผ่าน <span style="font-weight:400;text-transform:none;color:var(--text3);">(อย่างน้อย 6 ตัวอักษร)</span></label>
+      <div class="input-wrap">
+        <input type="password" id="reg-password" placeholder="สร้างรหัสผ่าน" autocomplete="new-password"
+          oninput="checkPasswordStrength(this.value)"
+          onkeydown="if(event.key==='Enter')doRegister()">
+        <button class="toggle-pw" type="button" onclick="togglePassword('reg-password',this)" tabindex="-1">👁</button>
+      </div>
+      <!-- Strength bar -->
+      <div class="strength-bar" id="strength-bar"><div class="strength-fill" id="strength-fill"></div></div>
+      <div class="strength-label" id="strength-label"></div>
+    </div>
+
+    <button class="btn-submit" id="btn-register" onclick="doRegister()">
+      <span id="reg-btn-text">สมัครสมาชิก</span>
+    </button>
+
+    <div class="divider">หรือ</div>
+
+    <button class="btn-google" onclick="signInWithGoogle()">
+      <svg class="google-icon" viewBox="0 0 24 24">
+        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+      </svg>
+      สมัครด้วย Google
+    </button>
+  </div>
+
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <span id="toast-icon">✅</span>
+  <span id="toast-msg"></span>
+</div>
+
+<script type="module">
+// ============================================================
+// FIREBASE IMPORTS (สำคัญมาก)
+// ============================================================
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+import {
+  getAuth,
+  GoogleAuthProvider,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  updateProfile,
+  sendPasswordResetEmail,
+  onAuthStateChanged,
+  setPersistence,
+  browserLocalPersistence,
+  browserSessionPersistence,
+  signInWithPopup
+} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+
+// ============================================================
+// FIREBASE CONFIG
+// ============================================================
+const firebaseConfig = {
+  apiKey: "AIzaSyAVPNX6oQ_uPx9zSDKoUr767W0EOaufW7s",
+  authDomain: "tax-planer.firebaseapp.com",
+  projectId: "tax-planer",
+  storageBucket: "tax-planer.appspot.com",
+  messagingSenderId: "232145883386",
+  appId: "1:232145883386:web:e78cdaaa7e11303c533943",
+  measurementId: "G-HW2KVTK9WW"
+};
+
+// ============================================================
+// INITIALIZE FIREBASE
+// ============================================================
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
+
+// ============================================================
+// AUTH STATE
+// ============================================================
+onAuthStateChanged(auth, (user) => {
+  const loader = document.getElementById('page-loader');
+
+  if (user) {
+    console.log("Login success", user.email);
+
+    if (loader) loader.classList.add('hide');
+
+    if (!window.location.pathname.endsWith("index.html")) {
+      window.location.href = "./index.html";
+    }
+
+  } else {
+    if (loader) loader.classList.add('hide');
+  }
+});
+
+// ============================================================
+// HELPERS
+// ============================================================
+function setLoading(btnId, textId, loading, label = '') {
+  const btn = document.getElementById(btnId);
+  const span = document.getElementById(textId);
+
+  if (!btn || !span) return;
+
+  btn.disabled = loading;
+
+  if (loading) {
+    span.innerHTML = '<div class="spinner"></div>';
+  } else {
+    span.textContent = label;
+  }
+}
+
+function showError(id, msg) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = '⚠️ ' + msg;
+  el.classList.add('show');
+}
+
+function clearError(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.remove('show');
+}
+
+function showSuccess(id, msg) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.add('show');
+}
+
+function mapFirebaseError(code) {
+  const map = {
+    'auth/user-not-found': 'ไม่พบบัญชีผู้ใช้นี้',
+    'auth/wrong-password': 'รหัสผ่านไม่ถูกต้อง',
+    'auth/invalid-credential': 'อีเมลหรือรหัสผ่านไม่ถูกต้อง',
+    'auth/email-already-in-use': 'อีเมลนี้ถูกใช้งานแล้ว',
+    'auth/weak-password': 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร',
+    'auth/invalid-email': 'รูปแบบอีเมลไม่ถูกต้อง',
+    'auth/too-many-requests': 'ลองใหม่ภายหลัง',
+    'auth/network-request-failed': 'ไม่มีอินเทอร์เน็ต',
+    'auth/popup-closed-by-user': 'ปิดหน้าต่างก่อนเสร็จ',
+    'auth/cancelled-popup-request': 'ยกเลิกการล็อกอิน'
+  };
+
+  return map[code] || code;
+}
+
+// ============================================================
+// LOGIN
+// ============================================================
+window.doLogin = async function () {
+  clearError('login-error');
+
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const remember = document.getElementById('remember-me').checked;
+
+  if (!email) return showError('login-error', 'กรอกอีเมล');
+  if (!password) return showError('login-error', 'กรอกรหัสผ่าน');
+
+  setLoading('btn-login', 'login-btn-text', true);
+
+  try {
+    await setPersistence(
+      auth,
+      remember ? browserLocalPersistence : browserSessionPersistence
+    );
+
+    await signInWithEmailAndPassword(auth, email, password);
+
+    window.location.href = "./index.html";
+
+  } catch (err) {
+    showError('login-error', mapFirebaseError(err.code));
+    setLoading('btn-login', 'login-btn-text', false, 'เข้าสู่ระบบ');
+  }
+};
+
+// ============================================================
+// REGISTER
+// ============================================================
+window.doRegister = async function () {
+  clearError('reg-error');
+
+  const name = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const password = document.getElementById('reg-password').value;
+
+  if (!name) return showError('reg-error', 'กรอกชื่อ');
+  if (!email) return showError('reg-error', 'กรอกอีเมล');
+  if (password.length < 6) return showError('reg-error', 'รหัสผ่านต้อง ≥ 6 ตัว');
+
+  setLoading('btn-register', 'reg-btn-text', true);
+
+  try {
+    const userCred = await createUserWithEmailAndPassword(auth, email, password);
+
+    await updateProfile(userCred.user, { displayName: name });
+
+    showSuccess('reg-success', 'สมัครสำเร็จ!');
+
+    setTimeout(() => {
+      window.location.href = "./index.html";
+    }, 1000);
+
+  } catch (err) {
+    showError('reg-error', mapFirebaseError(err.code));
+    setLoading('btn-register', 'reg-btn-text', false, 'สมัครสมาชิก');
+  }
+};
+
+// ============================================================
+// GOOGLE LOGIN
+// ============================================================
+window.signInWithGoogle = async function () {
+  try {
+    await signInWithPopup(auth, provider);
+    window.location.href = "./index.html";
+  } catch (err) {
+    const id = document.getElementById('panel-login') ? 'login-error' : 'reg-error';
+
+    if (err.code !== 'auth/popup-closed-by-user') {
+      showError(id, mapFirebaseError(err.code));
+    }
+  }
+};
+
+// ============================================================
+// RESET PASSWORD
+// ============================================================
+window.resetPassword = async function () {
+  const email = document.getElementById('login-email').value.trim();
+
+  if (!email) return showError('login-error', 'กรอกอีเมลก่อน');
+
+  try {
+    await sendPasswordResetEmail(auth, email);
+    showSuccess('login-success', 'ส่งลิงก์ไปอีเมลแล้ว');
+  } catch (err) {
+    showError('login-error', mapFirebaseError(err.code));
+  }
+};
+</script>
+</body>
+</html>
