@@ -1,0 +1,2436 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — Smart Tax Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+/* ===== RESET & CSS VARIABLES ===== */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f0e8;
+  --surface:#fdfaf5;
+  --surface2:#f0ebe0;
+  --surface3:#e8e0d0;
+  --glass:rgba(255,255,255,0.70);
+  --glass-border:rgba(180,160,120,0.18);
+  --accent:#7aab8a;
+  --accent2:#e8956d;
+  --accent3:#d4956a;
+  --danger:#d9534f;
+  --text:#2d2a24;
+  --text2:#5a5248;
+  --text3:#9a9080;
+  --radius:22px;
+  --radius-sm:14px;
+  --shadow:0 4px 24px rgba(100,80,50,0.10);
+  --transition:.2s ease;
+}
+/* Light mode (kept for toggle compatibility) */
+body.light-mode{
+  --bg:#ede8df;
+  --surface:#f7f3ec;
+  --surface2:#ede8df;
+  --surface3:#e0d8c8;
+  --glass:rgba(255,255,255,0.80);
+  --glass-border:rgba(150,130,100,0.15);
+  --text:#1e1c18;
+  --text2:#4a4438;
+  --text3:#8a8070;
+  --shadow:0 4px 20px rgba(80,60,30,0.12);
+}
+
+/* ===== DARK MODE ===== */
+body.dark-mode{
+  --bg:#0d1117;
+  --surface:#161b22;
+  --surface2:#1c2333;
+  --surface3:#21262d;
+  --glass:rgba(255,255,255,0.03);
+  --glass-border:rgba(255,255,255,0.07);
+  --accent:#7aab8a;
+  --accent2:#e8956d;
+  --accent3:#d4956a;
+  --danger:#e05c58;
+  --text:#e6edf3;
+  --text2:#8b949e;
+  --text3:#484f58;
+  --shadow:0 8px 32px rgba(0,0,0,0.6);
+}
+body.dark-mode::before{
+  background:
+    radial-gradient(ellipse 70% 50% at 5% 0%, rgba(122,171,138,0.06) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 60% at 95% 100%, rgba(232,149,109,0.05) 0%, transparent 55%);
+}
+body.dark-mode .card{
+  background:var(--surface);
+  border-color:var(--glass-border);
+  box-shadow:0 4px 20px rgba(0,0,0,0.5);
+}
+body.dark-mode .field input,
+body.dark-mode .field select{
+  background:var(--surface2);
+  border-color:var(--glass-border);
+  color:var(--text);
+}
+body.dark-mode .metric{
+  background:var(--surface2);
+  border-color:var(--glass-border);
+}
+body.dark-mode .bracket-table td{
+  border-bottom-color:rgba(255,255,255,0.04);
+}
+body.dark-mode .bracket-table tr.active-row{
+  background:rgba(122,171,138,0.07);
+}
+body.dark-mode .ai-panel{
+  background:linear-gradient(135deg,rgba(122,171,138,0.05),rgba(232,149,109,0.04));
+  border-color:rgba(122,171,138,0.15);
+}
+body.dark-mode .ai-tip{
+  background:rgba(255,255,255,0.02);
+  border-color:rgba(255,255,255,0.06);
+}
+body.dark-mode .faq-q{
+  background:rgba(255,255,255,0.03);
+  border-color:rgba(255,255,255,0.07);
+}
+body.dark-mode .history-item{
+  background:rgba(255,255,255,0.02);
+  border-color:rgba(255,255,255,0.06);
+}
+body.dark-mode .occ-banner{
+  background:rgba(122,171,138,0.07);
+}
+body.dark-mode .btn-ghost{
+  background:rgba(255,255,255,0.04);
+  border-color:rgba(255,255,255,0.08);
+  color:var(--text);
+}
+body.dark-mode .user-chip{
+  background:rgba(255,255,255,0.04);
+  border-color:rgba(255,255,255,0.08);
+}
+body.dark-mode .user-menu{
+  background:var(--surface);
+  border-color:var(--glass-border);
+}
+body.dark-mode .ai-ask input{
+  background:var(--surface2);
+  border-color:var(--glass-border);
+  color:var(--text);
+}
+body.dark-mode .ai-response{
+  background:rgba(255,255,255,0.03);
+}
+body.dark-mode #auth-guard{
+  background:var(--bg);
+}
+
+/* ===== TOOLTIP (?) ===== */
+.tooltip-wrap{
+  display:inline-flex;
+  align-items:center;
+  position:relative;
+  margin-left:5px;
+  vertical-align:middle;
+  flex-shrink:0;
+}
+.tooltip-btn{
+  width:16px;height:16px;
+  border-radius:50%;
+  background:rgba(122,171,138,0.18);
+  border:1px solid rgba(122,171,138,0.35);
+  color:var(--accent);
+  font-size:9px;font-weight:800;
+  line-height:14px;
+  text-align:center;
+  cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;
+  transition:background .15s, border-color .15s, transform .15s;
+  user-select:none;
+  flex-shrink:0;
+}
+.tooltip-btn:hover{
+  background:rgba(122,171,138,0.30);
+  border-color:var(--accent);
+  transform:scale(1.1);
+}
+.tooltip-box{
+  position:absolute;
+  bottom:calc(100% + 8px);
+  left:50%;
+  transform:translateX(-50%);
+  background:#1c2333;
+  color:#e6edf3;
+  border:1px solid rgba(122,171,138,0.25);
+  border-radius:10px;
+  padding:10px 13px;
+  font-size:12px;line-height:1.65;
+  white-space:normal;
+  width:230px;
+  box-shadow:0 6px 24px rgba(0,0,0,0.35);
+  z-index:200;
+  pointer-events:none;
+  opacity:0;
+  visibility:hidden;
+  transition:opacity .18s, visibility .18s;
+}
+/* Arrow */
+.tooltip-box::after{
+  content:'';
+  position:absolute;
+  top:100%;left:50%;
+  transform:translateX(-50%);
+  border:6px solid transparent;
+  border-top-color:#1c2333;
+}
+.tooltip-wrap:hover .tooltip-box,
+.tooltip-wrap:focus-within .tooltip-box{
+  opacity:1;visibility:visible;
+}
+/* Flip up if near bottom */
+.tooltip-box.flip{
+  bottom:auto;top:calc(100% + 8px);
+}
+.tooltip-box.flip::after{
+  top:auto;bottom:100%;
+  border-top-color:transparent;
+  border-bottom-color:#1c2333;
+}
+/* label row fix */
+.field label{
+  flex-wrap:wrap;
+  gap:4px;
+}
+.label-left{
+  display:flex;align-items:center;gap:4px;
+  flex:1;min-width:0;
+}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Sarabun',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  overflow-x:hidden;
+  transition:background var(--transition),color var(--transition);
+}
+body::before{
+  content:'';position:fixed;inset:0;
+  background:
+    radial-gradient(ellipse 70% 50% at 5% 0%, rgba(122,171,138,0.12) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 60% at 95% 100%, rgba(232,149,109,0.10) 0%, transparent 55%),
+    radial-gradient(ellipse 40% 40% at 50% 50%, rgba(212,195,160,0.08) 0%, transparent 70%);
+  pointer-events:none;z-index:0;
+}
+.wrapper{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:0 20px 60px;}
+
+/* ===== AUTH (legacy modal styles removed — using Firebase + login.html) ===== */
+/* ===== HEADER ===== */
+header{
+  padding:40px 0 30px;display:flex;align-items:center;
+  justify-content:space-between;border-bottom:1px solid var(--glass-border);
+  margin-bottom:36px;flex-wrap:wrap;gap:16px;
+  position:relative;z-index:100;
+}
+.logo{display:flex;align-items:center;gap:12px;}
+.logo-icon{
+  width:44px;height:44px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;
+}
+.logo-text h1{
+  font-family:'Space Mono',monospace;font-size:20px;font-weight:700;letter-spacing:-0.5px;
+  background:linear-gradient(90deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.logo-text p{font-size:12px;color:var(--text3);margin-top:2px;}
+.header-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+
+/* ===== BUTTONS ===== */
+.btn{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:10px 18px;border-radius:var(--radius-sm);
+  font-family:'Sarabun',sans-serif;font-size:14px;font-weight:500;
+  cursor:pointer;border:none;transition:all .2s;text-decoration:none;
+}
+.btn-ghost{background:var(--glass);border:1px solid var(--glass-border);color:var(--text);}
+.btn-ghost:hover{background:rgba(122,171,138,0.12);border-color:rgba(122,171,138,0.30);}
+.btn-accent{background:linear-gradient(135deg,var(--accent),#5d9470);color:#fff;font-weight:700;}
+.btn-accent:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(122,171,138,0.35);}
+.btn svg{width:16px;height:16px;flex-shrink:0;}
+.btn-icon{
+  width:38px;height:38px;padding:0;display:inline-flex;align-items:center;justify-content:center;
+  background:var(--glass);border:1px solid var(--glass-border);
+  border-radius:var(--radius-sm);color:var(--text);cursor:pointer;
+  font-size:16px;transition:all .2s;
+}
+.btn-icon:hover{background:rgba(122,171,138,0.14);}
+
+/* ===== USER AVATAR ===== */
+.user-chip{
+  display:flex;align-items:center;gap:8px;
+  background:var(--glass);border:1px solid var(--glass-border);
+  border-radius:20px;padding:5px 12px 5px 5px;cursor:pointer;
+  transition:all .2s;
+}
+.user-chip:hover{border-color:var(--accent);}
+.user-avatar{
+  width:28px;height:28px;border-radius:50%;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;color:#fff;flex-shrink:0;
+}
+.user-name{font-size:13px;font-weight:600;color:var(--text);}
+.user-menu{
+  position:absolute;top:100%;right:0;margin-top:6px;z-index:1000;
+  background:var(--surface);border:1px solid var(--glass-border);
+  border-radius:var(--radius-sm);padding:6px;min-width:160px;
+  box-shadow:var(--shadow);display:none;
+}
+.user-menu.open{display:block;}
+.user-menu-wrap{position:relative;z-index:1001;}
+.user-menu-item{
+  display:flex;align-items:center;gap:8px;
+  padding:9px 12px;border-radius:8px;font-size:13px;
+  color:var(--text2);cursor:pointer;transition:all .2s;border:none;
+  background:none;width:100%;font-family:'Sarabun',sans-serif;
+}
+.user-menu-item:hover{background:var(--surface2);color:var(--text);}
+.user-menu-item.danger{color:var(--danger);}
+.user-menu-item.danger:hover{background:rgba(217,83,79,0.08);}
+.user-menu-sep{height:1px;background:var(--glass-border);margin:4px 0;}
+
+/* ===== GRID ===== */
+.grid{display:grid;gap:24px;}
+.grid-2{grid-template-columns:1fr 1fr;}
+.grid-3{grid-template-columns:repeat(3,1fr);}
+@media(max-width:900px){.grid-3{grid-template-columns:1fr 1fr;}}
+@media(max-width:640px){.grid-2,.grid-3{grid-template-columns:1fr;}}
+
+/* ===== CARDS ===== */
+.card{
+  background:var(--surface);border:1px solid var(--glass-border);
+  border-radius:var(--radius);padding:24px;
+  box-shadow:var(--shadow);
+  transition:background var(--transition),border-color var(--transition);
+}
+.card-title{
+  font-size:13px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;
+  color:var(--text3);margin-bottom:20px;display:flex;align-items:center;gap:8px;
+}
+.card-title .dot{
+  width:6px;height:6px;border-radius:50%;
+  background:var(--accent);box-shadow:0 0 8px rgba(122,171,138,0.5);
+}
+
+/* ===== FORM ===== */
+.field{margin-bottom:18px;}
+.field label{
+  display:flex;align-items:center;justify-content:space-between;
+  font-size:13px;color:var(--text2);margin-bottom:7px;font-weight:500;
+}
+.field-cap{
+  font-size:11px;font-weight:700;color:var(--accent);
+  background:rgba(122,171,138,0.12);padding:2px 8px;border-radius:20px;
+}
+.field input,.field select{
+  width:100%;background:var(--surface2);border:1px solid var(--glass-border);
+  border-radius:var(--radius-sm);color:var(--text);font-family:'Sarabun',sans-serif;
+  font-size:15px;padding:12px 16px;
+  transition:border-color .2s,box-shadow .2s,background .2s;
+  appearance:none;-webkit-appearance:none;
+}
+.field input:focus,.field select:focus{
+  outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(122,171,138,0.15);
+}
+.field input.error{border-color:var(--danger)!important;box-shadow:0 0 0 3px rgba(217,83,79,0.12)!important;}
+.field input::placeholder{color:var(--text3);}
+.select-wrapper{position:relative;}
+.select-wrapper::after{
+  content:'▾';position:absolute;right:14px;top:50%;transform:translateY(-50%);
+  color:var(--text3);font-size:14px;pointer-events:none;
+}
+.field select{background-color:var(--surface2);cursor:pointer;}
+.field-hint{font-size:12px;color:var(--text3);margin-top:4px;}
+.field-error{font-size:12px;color:var(--danger);margin-top:4px;display:none;}
+
+/* Occupation tips banner */
+.occ-banner{
+  border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:16px;
+  border-left:3px solid var(--accent);
+  background:rgba(122,171,138,0.08);
+  font-size:12px;line-height:1.6;
+}
+.occ-banner .occ-title{font-weight:700;color:var(--accent);margin-bottom:4px;font-size:13px;}
+.occ-banner .occ-tips{color:var(--text2);}
+.occ-banner .occ-tip-item{
+  display:flex;align-items:flex-start;gap:6px;margin-top:4px;
+}
+
+/* ===== METRICS ===== */
+.metric{
+  background:var(--surface2);border:1px solid var(--glass-border);
+  border-radius:var(--radius);padding:20px;position:relative;overflow:hidden;
+  transition:transform .2s;
+}
+.metric:hover{transform:translateY(-2px);}
+.metric::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.metric.accent::before{background:linear-gradient(90deg,var(--accent),var(--accent2));}
+.metric.danger::before{background:linear-gradient(90deg,var(--danger),var(--accent3));}
+.metric.blue::before{background:linear-gradient(90deg,var(--accent2),#8b5cf6);}
+.metric.orange::before{background:linear-gradient(90deg,var(--accent3),#f74f6a);}
+.metric-label{font-size:12px;color:var(--text3);font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;}
+.metric-value{font-family:'Space Mono',monospace;font-size:26px;font-weight:700;color:var(--text);line-height:1;}
+.metric-value.big{font-size:28px;}
+.metric-sub{font-size:12px;color:var(--text3);margin-top:8px;}
+
+/* ===== BRACKET TABLE ===== */
+.bracket-table{width:100%;border-collapse:collapse;font-size:13px;}
+.bracket-table th{
+  text-align:left;color:var(--text3);font-weight:600;
+  padding:8px 12px;border-bottom:1px solid var(--glass-border);
+  font-size:11px;letter-spacing:.5px;text-transform:uppercase;
+}
+.bracket-table td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.03);}
+.bracket-table tr:last-child td{border-bottom:none;}
+.bracket-table tr.active-row{background:rgba(122,171,138,0.08);}
+.bracket-table tr.active-row td:first-child{border-left:2px solid var(--accent);}
+.amount-cell{font-family:'Space Mono',monospace;font-size:12px;color:var(--accent);font-weight:700;}
+
+/* ===== PROGRESS BAR ===== */
+.progress-bar{height:6px;background:var(--surface3);border-radius:3px;overflow:hidden;margin-top:6px;}
+.progress-fill{
+  height:100%;border-radius:3px;
+  background:linear-gradient(90deg,var(--accent),var(--accent2));
+  transition:width .8s cubic-bezier(.4,0,.2,1);
+}
+
+/* ===== AI PANEL ===== */
+.ai-panel{
+  background:linear-gradient(135deg,rgba(122,171,138,0.06),rgba(232,149,109,0.06));
+  border:1px solid rgba(122,171,138,0.20);border-radius:var(--radius);padding:24px;
+  box-shadow:var(--shadow);
+}
+.ai-header{display:flex;align-items:center;gap:12px;margin-bottom:20px;}
+.ai-avatar{
+  width:40px;height:40px;
+  background:linear-gradient(135deg,rgba(122,171,138,0.20),rgba(232,149,109,0.20));
+  border:1px solid rgba(122,171,138,0.30);border-radius:14px;
+  display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;
+}
+.ai-title{font-size:15px;font-weight:700;color:var(--text);}
+.ai-subtitle{font-size:12px;color:var(--text3);margin-top:2px;}
+.ai-pulse{
+  width:8px;height:8px;border-radius:50%;background:var(--accent);
+  box-shadow:0 0 0 0 rgba(122,171,138,0.4);animation:pulse 2s infinite;flex-shrink:0;
+}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(122,171,138,0.4)}70%{box-shadow:0 0 0 10px transparent}100%{box-shadow:0 0 0 0 transparent}}
+.ai-tips{display:flex;flex-direction:column;gap:12px;}
+.ai-tip{
+  display:flex;gap:12px;background:var(--glass);border:1px solid var(--glass-border);
+  border-radius:var(--radius-sm);padding:14px;transition:border-color .2s,transform .2s;
+}
+.ai-tip:hover{border-color:rgba(122,171,138,0.30);transform:translateX(4px);}
+.tip-icon{font-size:20px;flex-shrink:0;margin-top:2px;}
+.tip-content h4{font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px;}
+.tip-content p{font-size:12px;color:var(--text2);line-height:1.6;}
+.tip-save{font-size:11px;font-weight:700;color:var(--accent);margin-top:6px;}
+.ai-ask{display:flex;gap:10px;margin-top:16px;}
+.ai-ask input{
+  flex:1;background:var(--surface2);border:1px solid var(--glass-border);
+  border-radius:var(--radius-sm);color:var(--text);font-family:'Sarabun',sans-serif;
+  font-size:14px;padding:11px 14px;
+}
+.ai-ask input:focus{outline:none;border-color:var(--accent);}
+.ai-ask input::placeholder{color:var(--text3);}
+.ai-response{
+  margin-top:14px;background:var(--glass);border:1px solid rgba(122,171,138,0.20);
+  border-radius:var(--radius-sm);padding:14px;font-size:13px;color:var(--text2);
+  line-height:1.7;display:none;
+}
+.ai-response.visible{display:block;animation:fadeUp .3s ease;}
+.ai-loading{display:flex;gap:6px;align-items:center;font-size:13px;color:var(--text3);}
+.dot-anim span{
+  display:inline-block;width:5px;height:5px;background:var(--accent);
+  border-radius:50%;animation:dotbounce 1.2s infinite;
+}
+.dot-anim span:nth-child(2){animation-delay:.2s;}
+.dot-anim span:nth-child(3){animation-delay:.4s;}
+@keyframes dotbounce{0%,80%,100%{transform:scale(.6)}40%{transform:scale(1)}}
+.ai-mode-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;
+  margin-left:8px;vertical-align:middle;
+}
+.badge-api{background:rgba(122,171,138,0.15);color:var(--accent);}
+.badge-smart{background:rgba(232,149,109,0.15);color:var(--accent2);}
+
+/* ===== HISTORY ===== */
+.history-list{display:flex;flex-direction:column;gap:10px;}
+.history-item{
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--glass);border:1px solid var(--glass-border);
+  border-radius:var(--radius-sm);padding:12px 16px;gap:12px;flex-wrap:wrap;
+  transition:border-color .2s;
+}
+.history-item:hover{border-color:rgba(255,255,255,0.15);}
+.history-meta{font-size:12px;color:var(--text3);}
+.history-amounts{display:flex;gap:16px;flex-wrap:wrap;}
+.history-amount{text-align:right;}
+.history-amount .label{font-size:11px;color:var(--text3);}
+.history-amount .val{font-size:14px;font-weight:700;font-family:'Space Mono',monospace;color:var(--text);}
+.history-empty{
+  text-align:center;color:var(--text3);font-size:13px;padding:30px;
+  border:1px dashed var(--glass-border);border-radius:var(--radius-sm);
+}
+.btn-del{
+  background:none;border:none;color:var(--text3);cursor:pointer;
+  font-size:16px;padding:4px;border-radius:6px;transition:color .2s,background .2s;
+}
+.btn-del:hover{color:var(--danger);background:rgba(247,79,106,0.1);}
+
+/* ===== CALC BUTTON ===== */
+.btn-calc{
+  width:100%;padding:14px;font-size:16px;font-weight:700;
+  background:linear-gradient(135deg,var(--accent),#5d9470);color:#fff;
+  border:none;border-radius:var(--radius-sm);cursor:pointer;
+  font-family:'Sarabun',sans-serif;transition:all .2s;letter-spacing:.3px;margin-top:8px;
+  position:relative;overflow:hidden;
+}
+.btn-calc:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(122,171,138,0.35);}
+.btn-calc:active{transform:translateY(0);}
+.btn-calc:disabled{opacity:.6;cursor:not-allowed;transform:none;}
+.btn-calc .calc-spinner{
+  display:inline-block;width:16px;height:16px;
+  border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;
+  border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ===== RING ===== */
+.rate-ring{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;}
+.ring-container{position:relative;width:140px;height:140px;margin:0 auto 16px;}
+.ring-container svg{transform:rotate(-90deg);}
+.ring-text{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;}
+.ring-pct{font-size:28px;font-weight:700;font-family:'Space Mono',monospace;color:var(--text);}
+.ring-label{font-size:11px;color:var(--text3);margin-top:2px;}
+
+/* ===== TABS (About/Help) ===== */
+.nav-tabs{
+  display:flex;gap:4px;margin-bottom:0;
+  border-bottom:1px solid var(--glass-border);padding-bottom:0;
+}
+.nav-tab{
+  padding:10px 18px;font-size:14px;font-weight:600;color:var(--text3);
+  cursor:pointer;border:none;background:none;font-family:'Sarabun',sans-serif;
+  border-bottom:2px solid transparent;transition:all .2s;margin-bottom:-1px;
+}
+.nav-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.nav-tab:hover{color:var(--text);}
+.tab-content{display:none;padding-top:24px;}
+.tab-content.active{display:block;animation:fadeUp .3s ease;}
+
+/* ===== DISCLAIMER ===== */
+.disclaimer{
+  background:rgba(212,149,106,0.08);border:1px solid rgba(212,149,106,0.22);
+  border-radius:var(--radius-sm);padding:12px 16px;
+  font-size:12px;color:var(--text2);line-height:1.6;
+  display:flex;gap:10px;align-items:flex-start;margin-bottom:20px;
+}
+.disclaimer-icon{font-size:16px;flex-shrink:0;margin-top:1px;}
+
+/* ===== TOAST ===== */
+.toast{
+  position:fixed;bottom:24px;right:24px;z-index:9999;
+  background:var(--surface);border:1px solid var(--glass-border);
+  border-radius:var(--radius-sm);padding:14px 20px;
+  font-size:14px;color:var(--text);box-shadow:var(--shadow);
+  transform:translateY(80px);opacity:0;transition:all .3s cubic-bezier(.4,0,.2,1);
+  display:flex;align-items:center;gap:10px;max-width:340px;
+}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast-icon{font-size:18px;}
+
+/* ===== ANIMATIONS ===== */
+.fade-up{animation:fadeUp .5s ease forwards;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.delay-1{animation-delay:.05s;opacity:0}
+.delay-2{animation-delay:.10s;opacity:0}
+.delay-3{animation-delay:.15s;opacity:0}
+.delay-4{animation-delay:.20s;opacity:0}
+
+/* ===== LOADING STATE ===== */
+.skeleton{
+  background:linear-gradient(90deg,var(--surface2) 25%,var(--surface3) 50%,var(--surface2) 75%);
+  background-size:200% 100%;animation:shimmer 1.5s infinite;
+  border-radius:6px;display:inline-block;
+}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* ===== ABOUT/HELP ===== */
+.help-section{margin-bottom:24px;}
+.help-section h3{font-size:15px;font-weight:700;color:var(--text);margin-bottom:10px;}
+.help-section p,.help-section li{font-size:13px;color:var(--text2);line-height:1.8;}
+.help-section ul,.help-section ol{padding-left:18px;}
+.help-section li{margin-bottom:4px;}
+.faq-item{margin-bottom:12px;}
+.faq-q{
+  font-size:13px;font-weight:700;color:var(--text);cursor:pointer;
+  display:flex;justify-content:space-between;align-items:center;
+  padding:12px 16px;background:var(--glass);border:1px solid var(--glass-border);
+  border-radius:var(--radius-sm);transition:all .2s;
+}
+.faq-q:hover{border-color:var(--accent);}
+.faq-q.open{color:var(--accent);border-color:rgba(122,171,138,0.35);}
+.faq-a{
+  font-size:13px;color:var(--text2);line-height:1.7;
+  padding:0 16px;max-height:0;overflow:hidden;transition:max-height .3s ease,padding .3s ease;
+}
+.faq-a.open{max-height:200px;padding:12px 16px;}
+
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar{width:6px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:3px;}
+
+/* ===== CHECKBOX DEDUCTION ===== */
+.ded-section-title{
+  font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+  color:var(--text3);margin:20px 0 10px;
+  display:flex;align-items:center;gap:8px;
+}
+.ded-section-title::after{content:'';flex:1;height:1px;background:var(--glass-border);}
+.check-group{display:flex;flex-direction:column;gap:6px;margin-bottom:4px;}
+.check-item{
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--surface2);border:1px solid var(--glass-border);
+  border-radius:var(--radius-sm);padding:11px 14px;
+  cursor:pointer;transition:border-color .2s,background .2s;
+  gap:10px;
+}
+.check-item:hover{border-color:var(--accent);background:rgba(122,171,138,0.05);}
+.check-item.checked{
+  border-color:var(--accent);
+  background:rgba(122,171,138,0.08);
+}
+.check-item-left{display:flex;align-items:center;gap:10px;flex:1;min-width:0;}
+.check-box{
+  width:18px;height:18px;border-radius:5px;flex-shrink:0;
+  border:2px solid var(--glass-border);
+  background:var(--surface3);
+  display:flex;align-items:center;justify-content:center;
+  transition:all .2s;font-size:11px;
+}
+.check-item.checked .check-box{
+  background:var(--accent);border-color:var(--accent);color:#0a1a14;
+}
+.check-label{font-size:13px;color:var(--text);font-weight:500;}
+.check-sub{font-size:11px;color:var(--text3);margin-top:2px;}
+.check-amount{
+  font-family:'Space Mono',monospace;font-size:13px;
+  font-weight:700;color:var(--accent);white-space:nowrap;flex-shrink:0;
+}
+.check-item:not(.checked) .check-amount{color:var(--text3);}
+
+/* บุตรแบบมี counter */
+.check-counter{
+  display:flex;align-items:center;gap:8px;flex-shrink:0;
+}
+.counter-btn{
+  width:24px;height:24px;border-radius:6px;border:none;
+  background:var(--surface3);color:var(--text);font-size:14px;font-weight:700;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:background .2s;line-height:1;
+}
+.counter-btn:hover{background:var(--accent);color:#0a1a14;}
+.counter-val{
+  font-family:'Space Mono',monospace;font-size:13px;font-weight:700;
+  color:var(--text);min-width:20px;text-align:center;
+}
+
+/* บริจาค section */
+.donate-row{
+  display:flex;gap:8px;margin-bottom:8px;
+}
+.donate-row .field{flex:1;margin-bottom:0;}
+.donate-type-btn{
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  padding:9px 12px;border-radius:var(--radius-sm);font-size:12px;font-weight:600;
+  cursor:pointer;border:1px solid var(--glass-border);background:var(--glass);
+  color:var(--text3);transition:all .2s;font-family:'Sarabun',sans-serif;flex:1;
+}
+.donate-type-btn.active{
+  border-color:var(--accent);background:rgba(122,171,138,0.1);color:var(--accent);
+}
+.ded-total-box{
+  background:rgba(122,171,138,0.07);border:1px solid rgba(122,171,138,0.2);
+  border-radius:var(--radius-sm);padding:10px 14px;
+  display:flex;justify-content:space-between;align-items:center;
+  margin-top:8px;
+}
+.ded-total-label{font-size:12px;color:var(--text3);font-weight:600;}
+.ded-total-val{font-family:'Space Mono',monospace;font-size:15px;font-weight:700;color:var(--accent);}
+</style>
+</head>
+<body>
+
+<!-- ===== AUTH GUARD OVERLAY ===== -->
+<!-- Shown while Firebase checks auth state. Redirects to login.html if not authenticated. -->
+<div id="auth-guard" style="
+  position:fixed;inset:0;z-index:9999;
+  background:var(--bg);
+  display:flex;align-items:center;justify-content:center;
+  flex-direction:column;gap:16px;
+">
+  <div style="font-size:42px;animation:authPulse 1.4s ease-in-out infinite;">💰</div>
+  <div style="font-family:'Space Mono',monospace;font-size:13px;color:var(--text3);">กำลังตรวจสอบการเข้าสู่ระบบ...</div>
+</div>
+<style>
+@keyframes authPulse{0%,100%{transform:scale(1);opacity:1;}50%{transform:scale(1.12);opacity:.8;}}
+</style>
+
+<div class="wrapper">
+
+<!-- ===== HEADER ===== -->
+<header class="fade-up">
+  <div class="logo">
+    <div class="logo-icon">💰</div>
+    <div class="logo-text">
+      <h1>SMART TAX PLANNER</h1>
+      <p>วางแผนภาษีเงินได้บุคคลธรรมดา · ประเทศไทย · ปีภาษี 2569</p>
+    </div>
+  </div>
+  <div class="header-actions">
+    <button class="btn-icon" onclick="toggleTheme()" id="theme-btn" title="เปลี่ยน Theme">🌙</button>
+    <button class="btn btn-ghost" onclick="exportExcel()" style="padding:9px 14px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Excel
+    </button>
+    <button class="btn btn-ghost" onclick="exportPDF()" style="padding:9px 14px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+      PDF
+    </button>
+    <!-- User area (populated by Firebase auth) -->
+    <div class="user-menu-wrap" id="user-area" style="display:none;">
+      <div class="user-chip" onclick="toggleUserMenu()">
+        <div class="user-avatar" id="user-avatar-text">?</div>
+        <span class="user-name" id="user-display-name">...</span>
+      </div>
+      <div class="user-menu" id="user-menu">
+        <div style="padding:10px 12px 6px;border-bottom:1px solid var(--glass-border);">
+          <div style="font-size:12px;font-weight:700;color:var(--text);" id="user-menu-name">—</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px;" id="user-menu-email">—</div>
+        </div>
+        <div class="user-menu-sep"></div>
+        <button class="user-menu-item danger" onclick="doLogout()">🚪 ออกจากระบบ</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ===== NAV TABS ===== -->
+<div class="nav-tabs fade-up delay-1" style="margin-bottom:28px;">
+  <button class="nav-tab active" onclick="showTab('calc')">⚡ คำนวณภาษี</button>
+  <button class="nav-tab" onclick="showTab('history')">📋 ประวัติ</button>
+  <button class="nav-tab" onclick="showTab('about')">❓ วิธีใช้ / FAQ</button>
+</div>
+
+<!-- ===== TAB: CALCULATOR ===== -->
+<div id="tab-calc" class="tab-content active">
+
+<!-- DISCLAIMER -->
+<div class="disclaimer fade-up delay-1">
+  <span class="disclaimer-icon">⚠️</span>
+  <span><strong>ข้อจำกัดความรับผิดชอบ:</strong> ระบบนี้ใช้เพื่อวางแผนภาษีเบื้องต้นเท่านั้น ไม่ใช่คำแนะนำทางภาษีอย่างเป็นทางการ ตัวเลขที่แสดงเป็นการประมาณการ ควรตรวจสอบกับสรรพากรหรือผู้เชี่ยวชาญด้านภาษีก่อนยื่นแบบ</span>
+</div>
+
+<!-- MAIN GRID -->
+<div class="grid grid-2 fade-up delay-2">
+
+  <!-- LEFT: Input -->
+  <div>
+    <div class="card">
+      <div class="card-title"><span class="dot"></span>ข้อมูลรายได้และลดหย่อน (ปีภาษี 2569)</div>
+
+      <div class="field">
+        <label>อาชีพ / ประเภทเงินได้</label>
+        <div class="select-wrapper">
+          <select id="occupation" onchange="onOccupationChange()">
+            <option value="40(1)">เงินเดือน / พนักงานบริษัท (ม.40(1))</option>
+            <option value="40(2)">รับจ้างทั่วไป / ฟรีแลนซ์ (ม.40(2))</option>
+            <option value="40(3)">ค่าลิขสิทธิ์ / วิทยากร (ม.40(3))</option>
+            <option value="40(5)">เช่าทรัพย์สิน (ม.40(5))</option>
+            <option value="40(6)">วิชาชีพอิสระ / แพทย์ / ทนาย (ม.40(6))</option>
+            <option value="40(7)">รับเหมา / ก่อสร้าง (ม.40(7))</option>
+            <option value="40(8)">ธุรกิจ / การค้า (ม.40(8))</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Occupation-specific tips banner -->
+      <div id="occ-banner" class="occ-banner"></div>
+
+      <div class="field">
+        <label>
+          <span class="label-left">
+            รายได้ต่อปี (บาท)
+            <span class="tooltip-wrap">
+              <span class="tooltip-btn">?</span>
+              <span class="tooltip-box">
+                <strong>รายได้พึงประเมินรวม</strong><br>
+                รวมเงินเดือน โบนัส ค่าล่วงเวลา และรายได้อื่น ๆ ทุกประเภทในปีนั้น ก่อนหักภาษี ณ ที่จ่าย
+              </span>
+            </span>
+          </span>
+          <span class="field-cap">จำเป็น</span>
+        </label>
+        <input type="number" id="income" placeholder="เช่น 600,000" min="0" max="999999999"
+          oninput="validateIncome(this);formatHint(this,'income-hint')">
+        <div class="field-hint" id="income-hint"></div>
+        <div class="field-error" id="income-error">กรุณากรอกรายได้ที่ถูกต้อง (0–999 ล้านบาท)</div>
+      </div>
+
+      <div class="field">
+        <label>
+          <span class="label-left">
+            ค่าลดหย่อนส่วนตัว
+            <span class="tooltip-wrap">
+              <span class="tooltip-btn">?</span>
+              <span class="tooltip-box">
+                <strong>ลดหย่อนส่วนตัว 60,000 บาท</strong><br>
+                💡ลดหย่อนส่วนตัว 60,000 บาท
+                  รัฐจะไม่เก็บภาษีจากเงิน 60,000 บาทแรก
+                  ✅ ทุกคนได้เท่ากัน
+                  ✅ ไม่ต้องมีใบเสร็จ
+                  = รัฐไม่แตะเงิน 5,000 บาทแรกของทุกเดือน
+              </span>
+            </span>
+          </span>
+          <span class="field-cap">สูงสุด 60,000</span>
+        </label>
+        <input type="number" id="personal-ded" placeholder="60,000" min="0" max="60000" value="0"
+          oninput="clampValue(this,0,60000)">
+      </div>
+
+      <div class="field">
+        <label>
+          <span class="label-left">
+            เบี้ยประกันชีวิต (บาท)
+            <span class="tooltip-wrap">
+              <span class="tooltip-btn">?</span>
+              <span class="tooltip-box">
+                <strong>เบี้ยประกันชีวิต</strong><br>
+                กรมธรรม์ที่มีอายุสัญญา 10 ปีขึ้นไป นำเบี้ยที่จ่ายจริงมาลดหย่อนได้สูงสุด 100,000 บาท/ปี<br><br>
+                <em>รวมประกันแบบสะสมทรัพย์ และประกันชีวิตควบการลงทุน (Unit-Linked)</em>
+              </span>
+            </span>
+          </span>
+          <span class="field-cap">สูงสุด 100,000</span>
+        </label>
+        <input type="number" id="insurance-life" placeholder="0" min="0" max="100000" value="0"
+          oninput="clampValue(this,0,100000)">
+      </div>
+
+      <div class="field">
+        <label>
+          <span class="label-left">
+            เบี้ยประกันสุขภาพ (บาท)
+            <span class="tooltip-wrap">
+              <span class="tooltip-btn">?</span>
+              <span class="tooltip-box">
+                <strong>เบี้ยประกันสุขภาพ</strong><br>
+                นำเบี้ยประกันสุขภาพตนเองมาลดหย่อนได้สูงสุด 25,000 บาท/ปี<br><br>
+                ⚠️ เมื่อรวมกับประกันชีวิตแล้ว ต้องไม่เกิน 100,000 บาทรวมกัน
+              </span>
+            </span>
+          </span>
+          <span class="field-cap">สูงสุด 25,000</span>
+        </label>
+        <input type="number" id="insurance-health" placeholder="0" min="0" max="25000" value="0"
+          oninput="clampValue(this,0,25000)">
+      </div>
+
+      <div class="field">
+        <label>
+          <span class="label-left">
+            กองทุน Thai ESG (บาท)
+            <span class="tooltip-wrap">
+              <span class="tooltip-btn">?</span>
+              <span class="tooltip-box">
+                <strong>Thai ESG Fund</strong><br>
+                กองทุนรวมไทยเพื่อความยั่งยืน (Thailand ESG Fund) มาแทน LTF ลดหย่อนได้สูงสุด 30% ของรายได้ แต่ไม่เกิน 300,000 บาท/ปี<br><br>
+                📌 ถือขั้นต่ำ 8 ปีนับจากวันที่ซื้อ (ปีปฏิทิน)
+              </span>
+            </span>
+          </span>
+          <span class="field-cap">สูงสุด 30% / 300,000</span>
+        </label>
+        <input type="number" id="fund-thaiesg" placeholder="0" min="0" value="0"
+          oninput="clampValue(this,0,300000)">
+        <div class="field-hint" id="thaiesg-hint"></div>
+      </div>
+
+      <div class="field">
+        <label>
+          <span class="label-left">
+            กองทุน RMF (บาท)
+            <span class="tooltip-wrap">
+              <span class="tooltip-btn">?</span>
+              <span class="tooltip-box">
+                <strong>Retirement Mutual Fund (RMF)</strong><br>
+                กองทุนรวมเพื่อการเลี้ยงชีพ ลดหย่อนได้สูงสุด 30% ของรายได้ ไม่เกิน 500,000 บาท/ปี<br><br>
+                📌 เมื่อรวม RMF + PVD + กบข. ต้องไม่เกิน 500,000 บาท และต้องถือจนอายุครบ 55 ปี
+              </span>
+            </span>
+          </span>
+          <span class="field-cap">สูงสุด 30% / 500,000</span>
+        </label>
+        <input type="number" id="fund-rmf" placeholder="0" min="0" value="0"
+          oninput="clampValue(this,0,500000)">
+        <div class="field-hint" id="rmf-hint"></div>
+      </div>
+
+      <div class="field">
+        <label>
+          <span class="label-left">
+            กองทุนสำรองเลี้ยงชีพ / PVD (บาท)
+            <span class="tooltip-wrap">
+              <span class="tooltip-btn">?</span>
+              <span class="tooltip-box">
+                <strong>Provident Fund (PVD) / กบข.</strong><br>
+                เงินสมทบกองทุนสำรองเลี้ยงชีพที่บริษัทหักจากเงินเดือน ลดหย่อนได้ตามที่จ่ายจริง แต่ไม่เกิน 15% ของรายได้ และไม่เกิน 500,000 บาท<br><br>
+                📌 รวม RMF + PVD + กบข. ต้องไม่เกิน 500,000 บาทรวมกัน
+              </span>
+            </span>
+          </span>
+          <span class="field-cap">สูงสุด 500,000</span>
+        </label>
+        <input type="number" id="fund-pvd" placeholder="0" min="0" max="500000" value="0"
+          oninput="clampValue(this,0,500000)">
+      </div>
+
+      <div class="field">
+        <label>
+          <span class="label-left">
+            ดอกเบี้ยบ้านหลังแรก (บาท)
+            <span class="tooltip-wrap">
+              <span class="tooltip-btn">?</span>
+              <span class="tooltip-box">
+                <strong>ดอกเบี้ยเงินกู้ซื้อบ้านหลังแรก</strong><br>
+                ดอกเบี้ยที่จ่ายจริงในปีนั้น นำมาลดหย่อนได้สูงสุด 100,000 บาท/ปี<br><br>
+                📌 ต้องเป็นกู้เพื่อซื้อ/สร้าง/ต่อเติมที่อยู่อาศัยที่จดจำนองกับสถาบันการเงิน
+              </span>
+            </span>
+          </span>
+          <span class="field-cap">สูงสุด 100,000</span>
+        </label>
+        <input type="number" id="home" placeholder="0" min="0" max="100000" value="0"
+          oninput="clampValue(this,0,100000)">
+      </div>
+
+      <!-- ===== ลดหย่อนครอบครัว (ติ๊กเลือก) ===== -->
+      <div class="ded-section-title">👨‍👩‍👧 ค่าลดหย่อนครอบครัว</div>
+
+      <div class="check-group">
+
+        <!-- บุตร -->
+        <div class="check-item" id="ci-child" onclick="toggleCheckItem('child')">
+          <div class="check-item-left">
+            <div class="check-box" id="cb-child">✓</div>
+            <div>
+              <div class="check-label">
+                บุตร
+                <span class="tooltip-wrap" onclick="event.stopPropagation()">
+                  <span class="tooltip-btn">?</span>
+                  <span class="tooltip-box" style="width:220px;">
+                    <strong>ลดหย่อนบุตร</strong><br>
+                    • บุตรคนที่ 1: <strong>30,000 บาท/คน</strong><br>
+                    • บุตรคนที่ 2 เป็นต้นไป (เกิดปี 2561+): <strong>60,000 บาท/คน</strong><br>
+                    📌 บุตรต้องอายุไม่เกิน 20 ปี หรือไม่เกิน 25 ปีถ้าเรียนอยู่
+                  </span>
+                </span>
+              </div>
+              <div class="check-sub" id="child-sub">30,000 บาท/คน</div>
+            </div>
+          </div>
+          <div class="check-counter" onclick="event.stopPropagation()">
+            <button class="counter-btn" onclick="changeCount('child',-1)">−</button>
+            <span class="counter-val" id="child-count">0</span>
+            <button class="counter-btn" onclick="changeCount('child',1)">+</button>
+          </div>
+          <div class="check-amount" id="child-amt">฿0</div>
+        </div>
+
+        <!-- บิดา/มารดา -->
+        <div class="check-item" id="ci-parent" onclick="toggleCheckItem('parent')">
+          <div class="check-item-left">
+            <div class="check-box" id="cb-parent">✓</div>
+            <div>
+              <div class="check-label">
+                บิดา / มารดา
+                <span class="tooltip-wrap" onclick="event.stopPropagation()">
+                  <span class="tooltip-btn">?</span>
+                  <span class="tooltip-box" style="width:220px;">
+                    <strong>ลดหย่อนบิดามารดา</strong><br>
+                    <strong>30,000 บาท/คน</strong> สูงสุด 4 คน (บิดา-มารดาตัวเอง + คู่สมรส)<br>
+                    📌 บิดา/มารดาต้องอายุ 60 ปีขึ้นไป และรายได้ไม่เกิน 30,000 บาท/ปี
+                  </span>
+                </span>
+              </div>
+              <div class="check-sub" id="parent-sub">30,000 บาท/คน (สูงสุด 4 คน)</div>
+            </div>
+          </div>
+          <div class="check-counter" onclick="event.stopPropagation()">
+            <button class="counter-btn" onclick="changeCount('parent',-1)">−</button>
+            <span class="counter-val" id="parent-count">0</span>
+            <button class="counter-btn" onclick="changeCount('parent',1)">+</button>
+          </div>
+          <div class="check-amount" id="parent-amt">฿0</div>
+        </div>
+
+        <!-- คนพิการ/ทุพพลภาพ -->
+        <div class="check-item" id="ci-disabled" onclick="toggleCheckItem('disabled')">
+          <div class="check-item-left">
+            <div class="check-box" id="cb-disabled">✓</div>
+            <div>
+              <div class="check-label">
+                อุปการะคนพิการ / ทุพพลภาพ
+                <span class="tooltip-wrap" onclick="event.stopPropagation()">
+                  <span class="tooltip-btn">?</span>
+                  <span class="tooltip-box" style="width:220px;">
+                    <strong>ลดหย่อนคนพิการ/ทุพพลภาพ</strong><br>
+                    <strong>60,000 บาท/คน</strong> ไม่จำกัดจำนวน<br>
+                    📌 ต้องมีบัตรประจำตัวคนพิการ และรายได้ไม่เกิน 30,000 บาท/ปี
+                  </span>
+                </span>
+              </div>
+              <div class="check-sub" id="disabled-sub">60,000 บาท/คน</div>
+            </div>
+          </div>
+          <div class="check-counter" onclick="event.stopPropagation()">
+            <button class="counter-btn" onclick="changeCount('disabled',-1)">−</button>
+            <span class="counter-val" id="disabled-count">0</span>
+            <button class="counter-btn" onclick="changeCount('disabled',1)">+</button>
+          </div>
+          <div class="check-amount" id="disabled-amt">฿0</div>
+        </div>
+
+        <!-- คู่สมรส -->
+        <div class="check-item" id="ci-spouse" onclick="toggleCheckItem('spouse')">
+          <div class="check-item-left">
+            <div class="check-box" id="cb-spouse">✓</div>
+            <div>
+              <div class="check-label">
+                คู่สมรส (ไม่มีรายได้)
+                <span class="tooltip-wrap" onclick="event.stopPropagation()">
+                  <span class="tooltip-btn">?</span>
+                  <span class="tooltip-box" style="width:220px;">
+                    <strong>ลดหย่อนคู่สมรส</strong><br>
+                    <strong>60,000 บาท</strong> (ได้แค่ครั้งเดียว)<br>
+                    📌 คู่สมรสต้องไม่มีรายได้ หรือเลือกยื่นภาษีรวมกัน
+                  </span>
+                </span>
+              </div>
+              <div class="check-sub">60,000 บาท (ครั้งเดียว)</div>
+            </div>
+          </div>
+          <div class="check-amount" id="spouse-amt">฿0</div>
+        </div>
+
+      </div>
+
+      <!-- สรุปลดหย่อนครอบครัว -->
+      <div class="ded-total-box" id="family-total-box" style="display:none;">
+        <span class="ded-total-label">รวมลดหย่อนครอบครัว</span>
+        <span class="ded-total-val" id="family-total-val">฿0</span>
+      </div>
+
+      <!-- ===== บริจาค (แยกประเภท) ===== -->
+      <div class="ded-section-title" style="margin-top:20px;">💝 เงินบริจาค</div>
+
+      <div style="display:flex;gap:8px;margin-bottom:10px;">
+        <button class="donate-type-btn active" id="dt-edu" onclick="setDonateType('edu')">
+          🎓 การศึกษา/กีฬา (×2)
+        </button>
+        <button class="donate-type-btn" id="dt-general" onclick="setDonateType('general')">
+          ❤️ ทั่วไป (×1)
+        </button>
+      </div>
+      <div class="field" style="margin-bottom:4px;">
+        <label>
+          <span class="label-left">
+            จำนวนเงินที่บริจาคจริง (บาท)
+            <span class="tooltip-wrap">
+              <span class="tooltip-btn">?</span>
+              <span class="tooltip-box" style="width:240px;">
+                <strong>เงินบริจาค 2 ประเภท:</strong><br><br>
+                🎓 <strong>การศึกษา/กีฬา/สังคม</strong><br>
+                ลดหย่อนได้ <strong>2 เท่า</strong> ของที่จ่ายจริง แต่รวมกันไม่เกิน 10% ของรายได้สุทธิ<br><br>
+                ❤️ <strong>บริจาคทั่วไป</strong> (วัด โรงพยาบาลรัฐ ฯลฯ)<br>
+                ลดหย่อนได้ <strong>1 เท่า</strong> ไม่เกิน 10% ของรายได้สุทธิ
+              </span>
+            </span>
+          </span>
+        </label>
+        <input type="number" id="donate-amount" placeholder="0" min="0" value="0"
+          oninput="clampValue(this,0,9999999);calcDonate()">
+      </div>
+      <div class="ded-total-box" id="donate-total-box" style="display:none;">
+        <span class="ded-total-label" id="donate-total-label">ลดหย่อนได้</span>
+        <span class="ded-total-val" id="donate-total-val">฿0</span>
+      </div>
+
+      <!-- hidden input รวมค่า other-ded เพื่อส่งต่อ calculate() -->
+      <input type="hidden" id="other-ded" value="0">
+
+      <button class="btn-calc" id="btn-calc" onclick="calculate()">⚡ คำนวณภาษี</button>
+      <div style="font-size:11px;color:var(--text3);margin-top:10px;text-align:center;">
+        ข้อมูลตาม พ.ร.บ.ภาษีเงินได้บุคคลธรรมดา อัปเดตปี 2569
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Results -->
+  <div style="display:flex;flex-direction:column;gap:20px;">
+    <div class="grid grid-2">
+      <div class="metric accent">
+        <div class="metric-label">รายได้สุทธิ</div>
+        <div class="metric-value big" id="r-net-income">—</div>
+        <div class="metric-sub">หลังหักค่าใช้จ่าย + ลดหย่อน</div>
+      </div>
+      <div class="metric danger">
+        <div class="metric-label">ภาษีที่ต้องชำระ</div>
+        <div class="metric-value big" id="r-tax">—</div>
+        <div class="metric-sub" id="r-tax-sub">กรุณากรอกข้อมูล</div>
+      </div>
+      <div class="metric blue">
+        <div class="metric-label">อัตราภาษีที่แท้จริง</div>
+        <div class="metric-value" id="r-eff-rate">—</div>
+        <div class="metric-sub" id="r-eff-sub"></div>
+      </div>
+      <div class="metric orange">
+        <div class="metric-label">ค่าลดหย่อนรวม</div>
+        <div class="metric-value" id="r-ded">—</div>
+        <div class="metric-sub">บาท/ปี</div>
+      </div>
+    </div>
+
+    <!-- Ring -->
+    <div class="card" id="ring-card" style="display:none;">
+      <div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap;">
+        <div class="rate-ring">
+          <div class="ring-container">
+            <svg viewBox="0 0 140 140" width="140" height="140">
+              <circle cx="70" cy="70" r="56" fill="none" stroke="rgba(100,80,50,0.10)" stroke-width="12"/>
+              <circle id="ring-circle" cx="70" cy="70" r="56" fill="none"
+                stroke="url(#ringGrad)" stroke-width="12"
+                stroke-dasharray="352" stroke-dashoffset="352"
+                stroke-linecap="round" style="transition:stroke-dashoffset 1s ease"/>
+              <defs>
+                <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#7aab8a"/>
+                  <stop offset="100%" stop-color="#e8956d"/>
+                </linearGradient>
+              </defs>
+            </svg>
+            <div class="ring-text">
+              <div class="ring-pct" id="ring-pct">0%</div>
+              <div class="ring-label">อัตราภาษี</div>
+            </div>
+          </div>
+        </div>
+        <div style="flex:1;min-width:140px;">
+          <div style="font-size:13px;color:var(--text3);margin-bottom:12px;font-weight:600;">สัดส่วนค่าลดหย่อน</div>
+          <div id="ded-breakdown" style="display:flex;flex-direction:column;gap:8px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bracket table -->
+<div class="card" id="bracket-section" style="margin-top:24px;display:none;">
+  <div class="card-title"><span class="dot"></span>ภาษีแยกตามขั้น (Progressive Tax)</div>
+  <div style="overflow-x:auto;">
+    <table class="bracket-table">
+      <thead>
+        <tr>
+          <th>ขั้นรายได้สุทธิ</th><th>อัตรา</th>
+          <th>รายได้ที่คำนวณ</th><th>ภาษีขั้นนี้</th><th>สัดส่วน</th>
+        </tr>
+      </thead>
+      <tbody id="bracket-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Charts -->
+<div class="grid grid-2" id="charts-section" style="margin-top:24px;display:none;">
+  <div class="card">
+    <div class="card-title"><span class="dot"></span>สัดส่วนรายได้ vs ภาษี</div>
+    <div id="pie-legend" style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;"></div>
+    <div style="position:relative;height:220px;">
+      <canvas id="pieChart" role="img" aria-label="สัดส่วนภาษีและรายได้">รายได้และภาษี</canvas>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="dot"></span>ภาษีแต่ละขั้น (บาท)</div>
+    <div style="position:relative;height:220px;">
+      <canvas id="barChart" role="img" aria-label="ภาษีแต่ละขั้น">ภาษีแต่ละขั้น</canvas>
+    </div>
+  </div>
+</div>
+
+<!-- AI / Smart Advisor -->
+<div class="ai-panel" id="ai-section" style="margin-top:24px;display:none;">
+  <div class="ai-header">
+    <div class="ai-avatar">🧠</div>
+    <div style="flex:1;">
+      <div class="ai-title">
+        Smart Tax Advisor
+        <span class="ai-mode-badge badge-smart" id="ai-mode-badge">Smart Mode</span>
+      </div>
+      <div class="ai-subtitle" id="ai-subtitle-text">วิเคราะห์และแนะนำการวางแผนภาษีเฉพาะบุคคล</div>
+    </div>
+    <div class="ai-pulse"></div>
+  </div>
+  <div class="ai-tips" id="ai-tips"></div>
+  <div class="ai-ask">
+    <input type="text" id="ai-question"
+      placeholder="ถามเพิ่มเติม เช่น ควรซื้อ Thai ESG เพิ่มไหม? หรือ บริจาคช่วยลดภาษีได้เท่าไร?"
+      onkeydown="if(event.key==='Enter')askAI()">
+    <button class="btn btn-accent" onclick="askAI()" style="flex-shrink:0;white-space:nowrap;">ถาม AI</button>
+  </div>
+  <div class="ai-response" id="ai-response"></div>
+</div>
+
+</div><!-- /tab-calc -->
+
+<!-- ===== TAB: HISTORY ===== -->
+<div id="tab-history" class="tab-content">
+  <div class="card">
+    <div class="card-title"><span class="dot" style="background:var(--accent2);box-shadow:0 0 8px var(--accent2)"></span>ประวัติการคำนวณ</div>
+    <div id="history-list" class="history-list"></div>
+    <div style="margin-top:16px;display:flex;gap:10px;">
+      <button class="btn btn-ghost" onclick="clearHistory()" style="font-size:13px;">🗑 ล้างประวัติทั้งหมด</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TAB: ABOUT / HELP ===== -->
+<div id="tab-about" class="tab-content">
+  <div class="grid grid-2">
+    <div class="card">
+      <div class="card-title"><span class="dot"></span>วิธีใช้งาน</div>
+      <div class="help-section">
+        <h3>📝 ขั้นตอนการคำนวณ</h3>
+        <ol>
+          <li>เลือก <strong>ประเภทเงินได้ / อาชีพ</strong> ให้ตรงกับแหล่งรายได้หลักของคุณ</li>
+          <li>กรอก <strong>รายได้ต่อปี</strong> (รวมทุกแหล่ง ก่อนหักภาษี)</li>
+          <li>กรอกค่าลดหย่อนที่คุณมีสิทธิ์ ระบบจะแสดงเพดานสูงสุดอัตโนมัติ</li>
+          <li>กด <strong>คำนวณภาษี</strong> เพื่อดูผลลัพธ์</li>
+          <li>อ่านคำแนะนำจาก Smart Tax Advisor เพื่อวางแผนลดหย่อนเพิ่มเติม</li>
+        </ol>
+      </div>
+      <div class="help-section" style="margin-top:20px;">
+        <h3>🏦 ค่าลดหย่อนที่รองรับ (ปี 2569)</h3>
+        <ul>
+          <li>ส่วนตัว: <strong>60,000 บาท</strong></li>
+          <li>ประกันชีวิต: <strong>สูงสุด 100,000 บาท</strong></li>
+          <li>ประกันสุขภาพ: <strong>สูงสุด 25,000 บาท</strong></li>
+          <li>Thai ESG: <strong>30% ของรายได้ สูงสุด 300,000 บาท</strong> (เพดานแยกต่างหาก ไม่นับรวม RMF/PVD)</li>
+          <li>RMF: <strong>30% ของรายได้ สูงสุด 500,000 บาท</strong> (รวม PVD ไม่เกิน 30%)</li>
+          <li>PVD / กบข.: <strong>สูงสุด 500,000 บาท</strong></li>
+          <li>ดอกเบี้ยบ้าน: <strong>สูงสุด 100,000 บาท</strong></li>
+          <li>บุตร: <strong>30,000 บาท/คน</strong> (ไม่จำกัดจำนวน, บุตรคนที่ 2 เป็นต้นไปที่เกิดปี 2561+: 60,000 บาท)</li>
+          <li>บิดามารดา: <strong>30,000 บาท/คน</strong> สูงสุด 2 คน</li>
+          <li>บริจาคทั่วไป: <strong>ไม่เกิน 10% ของรายได้สุทธิ</strong></li>
+          <li>บริจาคการศึกษา/กีฬา/สังคม: <strong>2 เท่า ไม่เกิน 10% ของรายได้สุทธิ</strong></li>
+          <li><s>LTF</s>: ยกเลิกแล้ว ตั้งแต่ปี 2563</li>
+          <li><s>SSF</s>: ยกเลิกสิทธิ์ลดหย่อนใหม่แล้ว แนะนำ Thai ESG แทน</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot"></span>คำถามที่พบบ่อย (FAQ)</div>
+      <div id="faq-list"></div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:24px;">
+    <div class="card-title"><span class="dot"></span>เกี่ยวกับระบบ</div>
+    <div class="grid grid-3">
+      <div style="text-align:center;padding:16px;">
+        <div style="font-size:32px;margin-bottom:8px;">⚡</div>
+        <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px;">คำนวณเร็ว</div>
+        <div style="font-size:12px;color:var(--text3);">ผลลัพธ์ทันทีบน Browser ไม่ต้องส่งข้อมูลออก</div>
+      </div>
+      <div style="text-align:center;padding:16px;">
+        <div style="font-size:32px;margin-bottom:8px;">🔒</div>
+        <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px;">ปลอดภัย</div>
+        <div style="font-size:12px;color:var(--text3);">ข้อมูลเก็บใน LocalStorage ของอุปกรณ์คุณเท่านั้น</div>
+      </div>
+      <div style="text-align:center;padding:16px;">
+        <div style="font-size:32px;margin-bottom:8px;">📱</div>
+        <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px;">รองรับมือถือ</div>
+        <div style="font-size:12px;color:var(--text3);">Responsive ทุกขนาดหน้าจอ</div>
+      </div>
+    </div>
+    <div class="disclaimer" style="margin-top:16px;margin-bottom:0;">
+      <span class="disclaimer-icon">📌</span>
+      <span>ระบบนี้พัฒนาโดยใช้ข้อมูลจากกรมสรรพากร กฎหมายภาษีเงินได้บุคคลธรรมดาไทย <strong>อาจมีการเปลี่ยนแปลง</strong> ควรตรวจสอบกับ rd.go.th เสมอ ข้อมูลอัปเดตล่าสุด: ปีภาษี 2569</span>
+    </div>
+  </div>
+</div>
+
+</div><!-- /wrapper -->
+
+<div class="toast" id="toast">
+  <span class="toast-icon" id="toast-icon">✅</span>
+  <span id="toast-msg">สำเร็จ</span>
+</div>
+
+<script>
+// =============================================
+// ===== 1. TAX DATA (Updated 2569/2026) =====
+// =============================================
+const BRACKETS = [
+  {min:0,       max:150000,   rate:0},
+  {min:150000,  max:300000,   rate:0.05},
+  {min:300000,  max:500000,   rate:0.10},
+  {min:500000,  max:750000,   rate:0.15},
+  {min:750000,  max:1000000,  rate:0.20},
+  {min:1000000, max:2000000,  rate:0.25},
+  {min:2000000, max:5000000,  rate:0.30},
+  {min:5000000, max:Infinity, rate:0.35},
+];
+
+// Expense deduction rates per income type (updated 2569)
+const DEDUCTION_RATES = {
+  '40(1)': {label:'50% ไม่เกิน 100,000 บาท',     calc:(i)=>Math.min(i*0.5,100000)},
+  '40(2)': {label:'50% ไม่เกิน 100,000 บาท',     calc:(i)=>Math.min(i*0.5,100000)},
+  '40(3)': {label:'50% ไม่เกิน 100,000 บาท',     calc:(i)=>Math.min(i*0.5,100000)},
+  '40(5)': {label:'30% (ไม่มีเพดาน)',              calc:(i)=>i*0.30},
+  '40(6)': {label:'60% ไม่เกิน 600,000 บาท',      calc:(i)=>Math.min(i*0.6,600000)},
+  '40(7)': {label:'60% ไม่เกิน ตามจริง',           calc:(i)=>Math.min(i*0.6,Infinity)},
+  '40(8)': {label:'60% ไม่เกิน ตามจริง / ตามจริง',calc:(i)=>Math.min(i*0.6,Infinity)},
+};
+
+const OCCUPATION_LABELS = {
+  '40(1)':'เงินเดือน','40(2)':'รับจ้าง / ฟรีแลนซ์','40(3)':'ค่าลิขสิทธิ์',
+  '40(5)':'เช่าทรัพย์สิน','40(6)':'วิชาชีพอิสระ','40(7)':'รับเหมา','40(8)':'ธุรกิจ'
+};
+
+// Occupation-specific tips (ข้อ 7)
+const OCC_TIPS = {
+  '40(1)':{
+    title:'พนักงานบริษัท / เงินเดือน',
+    tips:[
+      '✅ หักค่าใช้จ่าย 50% ไม่เกิน 100,000 บาท (อัตโนมัติ)',
+      '💡 แนะนำ: ลงทุน Thai ESG + RMF ให้ถึงเพดาน 30% ของรายได้',
+      '💡 ซื้อประกันชีวิต + สุขภาพ ได้ลดหย่อนสูงสุด 125,000 บาท',
+      '📌 กองทุนสำรองเลี้ยงชีพ (PVD) ถ้ามีจากที่ทำงาน อย่าลืมกรอก',
+    ]
+  },
+  '40(2)':{
+    title:'ฟรีแลนซ์ / รับจ้างทั่วไป',
+    tips:[
+      '✅ หักค่าใช้จ่าย 50% ไม่เกิน 100,000 บาท (อัตโนมัติ)',
+      '💡 หากมีค่าใช้จ่ายจริงมากกว่า สามารถเลือกหักตามจริงได้',
+      '💡 ลงทุน Thai ESG/RMF เพื่อลดหย่อนและสร้างความมั่นคง',
+      '⚠️ ฟรีแลนซ์ควรเก็บใบเสร็จค่าใช้จ่ายทุกอย่างไว้',
+    ]
+  },
+  '40(3)':{
+    title:'ค่าลิขสิทธิ์ / วิทยากร',
+    tips:[
+      '✅ หักค่าใช้จ่าย 50% ไม่เกิน 100,000 บาท',
+      '💡 ถ้ายังมีรายได้ประเภทอื่น ต้องรวมยื่นภาษีด้วย',
+      '💡 พิจารณาซื้อประกันชีวิตระยะยาวเพื่อลดหย่อน',
+    ]
+  },
+  '40(5)':{
+    title:'เช่าทรัพย์สิน',
+    tips:[
+      '✅ หักค่าใช้จ่าย 30% โดยไม่มีเพดาน',
+      '⚠️ หากเลือกหักตามจริง ต้องมีเอกสารค่าใช้จ่ายครบ',
+      '💡 ค่าซ่อมแซม ค่าประกัน ค่าบริหารจัดการ หักได้ตามจริง',
+    ]
+  },
+  '40(6)':{
+    title:'วิชาชีพอิสระ (แพทย์ / ทนาย / วิศวกร)',
+    tips:[
+      '✅ หักค่าใช้จ่าย 60% ไม่เกิน 600,000 บาท',
+      '💡 วิชาชีพแพทย์ วิศวกร สถาปนิก บัญชี ทนาย',
+      '💡 ลงทุน RMF เพื่อเกษียณ + ลดหย่อนภาษีได้มาก',
+    ]
+  },
+  '40(7)':{
+    title:'รับเหมา / ก่อสร้าง',
+    tips:[
+      '✅ หักค่าใช้จ่าย 60% หรือตามจริง',
+      '💡 ค่าแรง วัสดุ เครื่องมือ หักได้ตามจริง',
+      '⚠️ ต้องเก็บบิล/ใบเสร็จทุกรายการ',
+    ]
+  },
+  '40(8)':{
+    title:'ธุรกิจ / การค้า / เกษตรกรรม',
+    tips:[
+      '✅ หักค่าใช้จ่าย 60% หรือตามจริง (แล้วแต่มากกว่า)',
+      '💡 ค่าสินค้า เงินเดือนพนักงาน ค่าเช่า หักได้',
+      '💡 หากรายได้เกิน 1.8 ล้าน ต้องจดทะเบียนภาษีมูลค่าเพิ่ม',
+    ]
+  },
+};
+
+// FAQ Data
+const FAQ_DATA = [
+  {q:'LTF คืออะไร ยังใช้ได้ไหม?', a:'LTF (Long Term Equity Fund) ยกเลิกสิทธิ์ลดหย่อนตั้งแต่ปี 2563 แล้ว ผู้ที่มี LTF อยู่แล้วสามารถถือต่อได้ แต่ไม่สามารถซื้อใหม่เพื่อใช้สิทธิ์ลดหย่อนได้อีก'},
+  {q:'Thai ESG vs RMF ต่างกันอย่างไร?', a:'Thai ESG: ลดหย่อนได้ 30% ของรายได้ สูงสุด 300,000 บาท เพดานแยกต่างหาก ไม่รวมกับก้อน RMF/PVD | RMF (Retirement Mutual Fund): ลดหย่อนได้ 30% ของรายได้ สูงสุด 500,000 บาท (รวม PVD ไม่เกิน 30%) ไถ่ถอนได้ตอนอายุ 55 ปี'},
+  {q:'ประกันสุขภาพลดหย่อนได้เท่าไร?', a:'ประกันชีวิต: สูงสุด 100,000 บาท | ประกันสุขภาพ (ส่วนตัว): สูงสุด 25,000 บาท | ประกันสุขภาพบิดามารดา: สูงสุด 15,000 บาท รวมลดหย่อนประกันทั้งหมดได้สูงสุดประมาณ 115,000 บาท'},
+  {q:'รายได้เท่าไรถึงต้องยื่นภาษี?', a:'บุคคลธรรมดา: หากมีเงินได้พึงประเมินเกิน 60,000 บาท/ปี (กรณีโสด) หรือ 120,000 บาท (กรณีสมรส) ต้องยื่น ภ.ง.ด.90/91 ภายในวันที่ 31 มีนาคมของปีถัดไป หรือ 8 เมษายนกรณียื่นออนไลน์'},
+  {q:'ถ้าภาษีเกินสามารถขอคืนได้ไหม?', a:'ได้ หากถูกหักภาษี ณ ที่จ่ายไว้มากกว่าที่ต้องชำระจริง สามารถยื่นขอคืนภาษีได้เมื่อยื่นแบบ ภ.ง.ด. โดยทั่วไปจะได้รับเงินคืนภายใน 1-3 เดือนหลังยื่น'},
+];
+
+// =============================================
+// ===== 2. AUTH SYSTEM (Firebase) ===
+// =============================================
+let currentUser = null;
+
+// Firebase is initialized via the module script below.
+// These functions are called from the module after auth state is confirmed.
+
+function setLoggedInUser(firebaseUser) {
+  currentUser = {
+    uid:   firebaseUser.uid,
+    email: firebaseUser.email,
+    name:  firebaseUser.displayName || firebaseUser.email.split('@')[0]
+  };
+  const initial = currentUser.name.charAt(0).toUpperCase();
+  document.getElementById('user-avatar-text').textContent = initial;
+  document.getElementById('user-display-name').textContent = currentUser.name.split(' ')[0];
+  document.getElementById('user-menu-name').textContent  = currentUser.name;
+  document.getElementById('user-menu-email').textContent = currentUser.email;
+  document.getElementById('user-area').style.display = '';
+  // Remove auth guard
+  const guard = document.getElementById('auth-guard');
+  if(guard) guard.remove();
+  renderHistory();
+  showToast('ยินดีต้อนรับ ' + currentUser.name.split(' ')[0] + '! 👋');
+}
+
+function doLogout(){
+  // Delegate to Firebase module
+  if(window._firebaseSignOut) window._firebaseSignOut();
+  closeUserMenu();
+}
+
+function getUserKey(){
+  return currentUser ? 'taxHistory_' + currentUser.uid : 'taxHistory_anon';
+}
+
+function validateEmail(e){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);}
+
+function toggleUserMenu(){
+  document.getElementById('user-menu').classList.toggle('open');
+}
+function closeUserMenu(){document.getElementById('user-menu').classList.remove('open');}
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.user-menu-wrap'))closeUserMenu();
+});
+
+// initAuth is now a no-op — Firebase module handles auth state
+function initAuth(){}
+
+// =============================================
+// ===== 3. THEME TOGGLE ===== (ข้อ 9)
+// =============================================
+function toggleTheme(){
+  const body = document.body;
+  if(body.classList.contains('dark-mode')){
+    // dark → default (warm)
+    body.classList.remove('dark-mode');
+    document.getElementById('theme-btn').textContent='🌙';
+    localStorage.setItem('taxplanner_theme','default');
+  } else if(body.classList.contains('light-mode')){
+    // light → dark
+    body.classList.remove('light-mode');
+    body.classList.add('dark-mode');
+    document.getElementById('theme-btn').textContent='☀️';
+    localStorage.setItem('taxplanner_theme','dark');
+  } else {
+    // default (warm) → dark
+    body.classList.add('dark-mode');
+    document.getElementById('theme-btn').textContent='☀️';
+    localStorage.setItem('taxplanner_theme','dark');
+  }
+  // Re-render charts with correct bg if they exist
+  if(lastResult) renderCharts(
+    lastResult.income, lastResult.tax,
+    lastResult.totalDeduction, lastResult.breakdown
+  );
+  // เช็ค login ก่อนเข้าหน้าหลัก
+(function(){
+  const remember = localStorage.getItem('taxplanner_remember');
+  const session = sessionStorage.getItem('taxplanner_session');
+  if(!remember && !session){
+    window.location.href = 'login.html';
+  }
+})();
+}
+function initTheme(){
+  const saved = localStorage.getItem('taxplanner_theme');
+  if(saved==='dark'){
+    document.body.classList.add('dark-mode');
+    document.getElementById('theme-btn').textContent='☀️';
+  } else if(saved==='light'){
+    document.body.classList.add('light-mode');
+    document.getElementById('theme-btn').textContent='🌙';
+  }
+}
+
+// =============================================
+// ===== 4. TAB NAVIGATION =====
+// =============================================
+function showTab(name){
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  const tabs = document.querySelectorAll('.nav-tab');
+  const idx = ['calc','history','about'].indexOf(name);
+  if(idx>=0) tabs[idx].classList.add('active');
+  if(name==='history')renderHistory();
+}
+
+// =============================================
+// ===== 5. OCCUPATION TIPS (ข้อ 7) =====
+// =============================================
+function onOccupationChange(){
+  updateDeductionHint();
+  renderOccBanner();
+  updateFundHints();
+}
+
+function renderOccBanner(){
+  const occ = document.getElementById('occupation').value;
+  const d = OCC_TIPS[occ];
+  if(!d){document.getElementById('occ-banner').innerHTML='';return;}
+  document.getElementById('occ-banner').innerHTML = `
+    <div class="occ-title">💼 ${d.title}</div>
+    <div class="occ-tips">
+      ${d.tips.map(t=>`<div class="occ-tip-item"><span>${t}</span></div>`).join('')}
+    </div>
+  `;
+}
+
+function updateDeductionHint(){
+  const occ = document.getElementById('occupation').value;
+  const d = DEDUCTION_RATES[occ];
+  // hint is inside occ-banner now
+}
+
+function updateFundHints(){
+  const income = parseFloat(document.getElementById('income').value)||0;
+  if(income<=0){
+    document.getElementById('thaiesg-hint').textContent='';
+    document.getElementById('rmf-hint').textContent='';
+    return;
+  }
+  const thaiesgMax = Math.min(income*0.30,300000);
+  const rmfMax = Math.min(income*0.30,500000);
+  document.getElementById('thaiesg-hint').textContent =
+    `เพดานของคุณ: ${fmt(thaiesgMax)} บาท (30% × ${fmt(income)}, สูงสุด 300,000)`;
+  document.getElementById('rmf-hint').textContent =
+    `เพดานของคุณ: ${fmt(rmfMax)} บาท (30% × ${fmt(income)})`;
+}
+
+// =============================================
+// ===== 6. VALIDATION (ข้อ 10) =====
+// =============================================
+function validateIncome(el){
+  const v = parseFloat(el.value)||0;
+  const errEl = document.getElementById('income-error');
+  if(v<0||v>999999999){
+    el.classList.add('error');
+    errEl.style.display='block';
+    return false;
+  }
+  el.classList.remove('error');
+  errEl.style.display='none';
+  updateFundHints();
+  return true;
+}
+
+function clampValue(el, min, max){
+  const v = parseFloat(el.value);
+  if(isNaN(v))return;
+  if(v<min){el.value=min;}
+  if(v>max){el.value=max;showToast(`ค่าสูงสุดคือ ${fmt(max)} บาท`,'⚠️');}
+}
+
+function formatHint(el,hintId){
+  const v = parseFloat(el.value)||0;
+  const h = document.getElementById(hintId);
+  if(h&&v>0)h.textContent=fmt(v)+' บาท';
+  else if(h)h.textContent='';
+}
+
+// =============================================
+// ===== 7. TAX CALCULATION (Updated) =====
+// =============================================
+function fmt(n){return Math.round(n).toLocaleString('th-TH');}
+function fmtShort(n){
+  if(n>=1e6)return (n/1e6).toFixed(2)+'M';
+  if(n>=1e3)return (n/1e3).toFixed(1)+'K';
+  return Math.round(n).toString();
+}
+
+function calculateTax(netIncome){
+  let tax=0; const breakdown=[];
+  for(const b of BRACKETS){
+    if(netIncome<=b.min)break;
+    const taxable=Math.min(netIncome,b.max)-b.min;
+    const taxInBracket=taxable*b.rate;
+    tax+=taxInBracket;
+    breakdown.push({...b,taxable,taxInBracket});
+  }
+  return {tax,breakdown};
+}
+
+let pieChart=null,barChart=null,lastResult=null;
+
+function calculate(){
+  const income = parseFloat(document.getElementById('income').value)||0;
+  if(income<=0||income>999999999){
+    showToast('กรุณากรอกรายได้ที่ถูกต้อง','⚠️');
+    document.getElementById('income').classList.add('error');
+    return;
+  }
+
+  // Loading state
+  const btn = document.getElementById('btn-calc');
+  btn.disabled=true;
+  btn.innerHTML='<span class="calc-spinner"></span>กำลังคำนวณ...';
+
+  setTimeout(()=>{
+    try{
+      const occ = document.getElementById('occupation').value;
+      const personalDed = Math.min(parseFloat(document.getElementById('personal-ded').value)||60000, 60000);
+      const insLife   = Math.min(parseFloat(document.getElementById('insurance-life').value)||0, 100000);
+      const insHealth = Math.min(parseFloat(document.getElementById('insurance-health').value)||0, 25000);
+      const thaiesg = parseFloat(document.getElementById('fund-thaiesg').value)||0;
+      const rmf = parseFloat(document.getElementById('fund-rmf').value)||0;
+      const pvd = parseFloat(document.getElementById('fund-pvd').value)||0;
+      const home = Math.min(parseFloat(document.getElementById('home').value)||0, 100000);
+      const otherDed = Math.max(0, calcOtherDed());
+
+      // Thai ESG: แยกเพดาน 30% ของรายได้ สูงสุด 300,000 (ไม่รวมกับ RMF/PVD)
+      const thaiesgMax = Math.min(income*0.30, 300000);
+      const thaiesgClamped = Math.min(thaiesg, thaiesgMax);
+
+      // RMF+PVD cap: total <= 30% of income (500K max) — แยกจาก Thai ESG
+      const fundCap30 = income*0.30;
+      const rmfClamped = Math.min(rmf, Math.min(fundCap30, 500000));
+      const pvdClamped = Math.min(pvd, 500000);
+      // Combined RMF+PVD ≤ 30% × income (max 500K)
+      const totalRmfPvd = Math.min(rmfClamped+pvdClamped, Math.min(fundCap30, 500000));
+
+      const expenseDeduction = DEDUCTION_RATES[occ].calc(income);
+      const totalDeduction = expenseDeduction+personalDed+insLife+insHealth+thaiesgClamped+totalRmfPvd+home+otherDed;
+      const netIncome = Math.max(0, income-totalDeduction);
+      const {tax,breakdown} = calculateTax(netIncome);
+      const effRate = income>0?(tax/income)*100:0;
+
+      lastResult = {
+        income,occ,totalDeduction,netIncome,tax,effRate,breakdown,
+        deductions:{
+          expense:expenseDeduction,personal:personalDed,
+          insLife,insHealth,thaiesg:thaiesgClamped,fund:totalRmfPvd,home,other:otherDed
+        }
+      };
+
+      // Update metrics
+      document.getElementById('r-net-income').textContent=fmt(netIncome);
+      document.getElementById('r-tax').textContent=fmt(tax);
+      document.getElementById('r-tax-sub').textContent=tax>0
+        ?'≈ '+fmtShort(tax/12)+' บาท/เดือน'
+        :'ไม่ต้องชำระภาษี 🎉';
+      document.getElementById('r-eff-rate').textContent=effRate.toFixed(2)+'%';
+      document.getElementById('r-eff-sub').textContent='ของรายได้ '+fmt(income)+' บาท';
+      document.getElementById('r-ded').textContent=fmt(totalDeduction);
+
+      // Ring
+      document.getElementById('ring-card').style.display='';
+      document.getElementById('ring-pct').textContent=effRate.toFixed(1)+'%';
+      const circ=2*Math.PI*56;
+      setTimeout(()=>{
+        document.getElementById('ring-circle').style.strokeDashoffset=circ*(1-Math.min(effRate/35,1));
+      },100);
+
+      // Deduction breakdown bars
+      const dedItems=[
+        {label:'ค่าใช้จ่าย ('+occ+')',val:expenseDeduction,color:'#7aab8a'},
+        {label:'ส่วนตัว',val:personalDed,color:'#e8956d'},
+        {label:'ประกันชีวิต',val:insLife,color:'#c4a76a'},
+        {label:'ประกันสุขภาพ',val:insHealth,color:'#5d9470'},
+        {label:'Thai ESG',val:thaiesgClamped,color:'#9b7dd4'},
+        {label:'กองทุน RMF/PVD',val:totalRmfPvd,color:'#6b9dd4'},
+        {label:'ดอกเบี้ยบ้าน',val:home,color:'#d96b6b'},
+        {label:'อื่น ๆ',val:otherDed,color:'#8ab0b8'},
+      ].filter(d=>d.val>0);
+      document.getElementById('ded-breakdown').innerHTML=dedItems.map(d=>`
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="width:8px;height:8px;border-radius:2px;background:${d.color};flex-shrink:0;"></span>
+          <span style="font-size:12px;color:var(--text2);flex:1;">${d.label}</span>
+          <span style="font-size:12px;font-weight:700;font-family:'Space Mono',monospace;color:var(--text);">${fmt(d.val)}</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${(d.val/totalDeduction*100).toFixed(1)}%;background:${d.color};transition:width .8s ease;"></div></div>
+      `).join('');
+
+      // Bracket table
+      document.getElementById('bracket-section').style.display='';
+      document.getElementById('bracket-body').innerHTML=breakdown.map(b=>`
+        <tr class="${b.taxInBracket>0?'active-row':''}">
+          <td style="color:var(--text2);font-size:13px;">${fmt(b.min)}–${b.max===Infinity?'∞':fmt(b.max)} บาท</td>
+          <td><span style="background:rgba(122,171,138,0.10);padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;color:${b.rate===0?'var(--text3)':'var(--accent)'};">${(b.rate*100).toFixed(0)}%</span></td>
+          <td style="color:var(--text2);font-size:13px;">${fmt(b.taxable)}</td>
+          <td class="amount-cell">฿${fmt(b.taxInBracket)}</td>
+          <td style="width:110px;">
+            <div style="display:flex;align-items:center;gap:5px;">
+              <div class="progress-bar" style="flex:1;height:4px;"><div class="progress-fill" style="width:${tax>0?(b.taxInBracket/tax*100).toFixed(1):0}%;"></div></div>
+              <span style="font-size:11px;color:var(--text3);min-width:26px;">${tax>0?(b.taxInBracket/tax*100).toFixed(0):0}%</span>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+
+      // Charts
+      document.getElementById('charts-section').style.display='';
+      renderCharts(income,tax,totalDeduction,breakdown);
+
+      // AI
+      document.getElementById('ai-section').style.display='';
+      renderSmartTips(lastResult);
+
+      // History
+      saveHistory(lastResult);
+      renderHistory();
+
+      showToast('คำนวณเสร็จ! ภาษีรวม ฿'+fmt(tax));
+    }catch(err){
+      showToast('เกิดข้อผิดพลาด: '+err.message,'❌');
+    }finally{
+      btn.disabled=false;
+      btn.innerHTML='⚡ คำนวณภาษี';
+    }
+  },400);
+}
+
+// =============================================
+// ===== 8. CHARTS =====
+// =============================================
+function renderCharts(income,tax,deduction,breakdown){
+  const isDark = document.body.classList.contains('dark-mode');
+  const borderCol = isDark ? '#161b22' : '#fdfaf5';
+  const tickCol   = isDark ? '#484f58'  : '#9a9080';
+  const gridCol   = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(150,130,100,0.08)';
+
+  const keep=Math.max(0,income-tax-deduction);
+  const pieData={
+    labels:['ภาษี','ลดหย่อน','คงเหลือ'],
+    datasets:[{
+      data:[Math.round(tax),Math.round(deduction),Math.round(keep)],
+      backgroundColor:['#d96b6b','#7aab8a','#e8956d'],
+      borderColor:[borderCol,borderCol,borderCol],
+      borderWidth:3,hoverOffset:8
+    }]
+  };
+  document.getElementById('pie-legend').innerHTML=['#d96b6b','#7aab8a','#e8956d']
+    .map((c,i)=>`
+      <span style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text2);">
+        <span style="width:10px;height:10px;border-radius:2px;background:${c};display:inline-block;"></span>
+        ${['ภาษี','ลดหย่อน','คงเหลือ'][i]} ${([tax,deduction,keep][i]/income*100).toFixed(1)}%
+      </span>
+    `).join('');
+
+  if(pieChart)pieChart.destroy();
+  pieChart=new Chart(document.getElementById('pieChart'),{
+    type:'doughnut',data:pieData,
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' ฿'+fmt(ctx.raw)}}},
+      cutout:'65%'}
+  });
+
+  const barColors=breakdown.map(b=>{
+    const r=b.rate;
+    if(r===0)return isDark?'#2a3240':'#d8d0c0';
+    if(r<=0.05)return '#7aab8a';if(r<=0.10)return '#5d9470';
+    if(r<=0.15)return '#e8956d';if(r<=0.20)return '#c47a52';
+    if(r<=0.25)return '#c4a76a';if(r<=0.30)return '#a07840';
+    return '#d96b6b';
+  });
+  if(barChart)barChart.destroy();
+  barChart=new Chart(document.getElementById('barChart'),{
+    type:'bar',
+    data:{
+      labels:breakdown.map(b=>b.rate===0?'ยกเว้น':(b.rate*100)+'%'),
+      datasets:[{data:breakdown.map(b=>Math.round(b.taxInBracket)),backgroundColor:barColors,borderRadius:6,borderSkipped:false}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' ฿'+fmt(ctx.raw)}}},
+      scales:{
+        x:{ticks:{color:tickCol,font:{size:11}},grid:{color:gridCol}},
+        y:{ticks:{color:tickCol,font:{size:11},callback:v=>'฿'+fmtShort(v)},grid:{color:gridCol}}
+      }
+    }
+  });
+}
+
+// =============================================
+// ===== 9. SMART TAX ADVISOR (ข้อ 2 & 7) =====
+// =============================================
+function buildPersonalizedTips(r){
+  const tips=[];
+  const {income,tax,netIncome,effRate,deductions,occ}=r;
+  const fundCap=Math.min(income*0.30,500000);
+  const thaiesgCap=Math.min(income*0.30,300000);
+  const thaiesgRoom=Math.max(0,thaiesgCap-(deductions.thaiesg||0));
+  const rmfRoom=Math.max(0,Math.min(income*0.30,500000)-deductions.fund);
+  const insLifeRoom=100000-deductions.insLife;
+  const insHealthRoom=25000-deductions.insHealth;
+  const homeRoom=100000-deductions.home;
+
+  // Thai ESG tip
+  if(thaiesgRoom>0 && income > 300000){
+    const taxSave=thaiesgRoom*effRate/100;
+    tips.push({
+      icon:'🌿',priority:1,
+      title:`เพิ่มการลงทุน Thai ESG ยังเหลือสิทธิ์อีก ฿${fmt(Math.round(thaiesgRoom))}`,
+      detail:`รายได้ ${fmt(income)} บาท เพดาน Thai ESG = ${fmt(Math.round(thaiesgCap))} บาท (เพดานแยก ไม่รวม RMF/PVD) ปัจจุบันใช้ ${fmt(deductions.thaiesg||0)} บาท`,
+      saving:taxSave>0?taxSave:null
+    });
+  }
+
+  // RMF/PVD tip
+  if(rmfRoom > 0 && income > 300000){
+    const taxSave=rmfRoom*effRate/100;
+    tips.push({
+      icon:'🏦',priority:2,
+      title:`เพิ่มการลงทุน RMF/PVD ยังเหลือสิทธิ์อีก ฿${fmt(Math.round(rmfRoom))}`,
+      detail:`เพดาน RMF+PVD รวม ${fmt(Math.round(fundCap))} บาท ปัจจุบันใช้ ${fmt(deductions.fund)} บาท`,
+      saving:taxSave>0?taxSave:null
+    });
+  }
+
+  // ประกันชีวิต
+  if(insLifeRoom>1000){
+    tips.push({
+      icon:'🛡️',priority:3,
+      title:`ประกันชีวิต: ยังเหลือสิทธิ์อีก ฿${fmt(insLifeRoom)}`,
+      detail:`ปัจจุบันใช้ลดหย่อน ฿${fmt(deductions.insLife)} จากเพดาน ฿100,000 ซื้อเพิ่มได้อีก ฿${fmt(insLifeRoom)}`,
+      saving:insLifeRoom*effRate/100
+    });
+  }
+
+  // ประกันสุขภาพ
+  if(insHealthRoom>500){
+    tips.push({
+      icon:'🏥',priority:4,
+      title:`ประกันสุขภาพ: ยังเหลือสิทธิ์ ฿${fmt(insHealthRoom)}`,
+      detail:`ปัจจุบันใช้ ฿${fmt(deductions.insHealth)} จากเพดาน ฿25,000 เพิ่มประกันสุขภาพได้อีก ฿${fmt(insHealthRoom)}`,
+      saving:insHealthRoom*effRate/100
+    });
+  }
+
+  // บ้านหลังแรก
+  if(homeRoom>1000 && income>500000){
+    tips.push({
+      icon:'🏠',priority:5,
+      title:`ดอกเบี้ยบ้านหลังแรก: เหลือสิทธิ์ ฿${fmt(homeRoom)}`,
+      detail:`สามารถนำดอกเบี้ยเงินกู้บ้านหลังแรกมาลดหย่อนเพิ่มได้ถึง ฿${fmt(homeRoom)}`,
+      saving:homeRoom*effRate/100
+    });
+  }
+
+  // บริจาค
+  if(tax>5000 && netIncome>0){
+    const donateCap=netIncome*0.10;
+    const taxSave=donateCap*effRate/100;
+    tips.push({
+      icon:'💝',priority:6,
+      title:`บริจาคเพื่อการศึกษา/กีฬา ลดหย่อนได้ 2 เท่า สูงสุด ฿${fmt(Math.round(donateCap))}`,
+      detail:`บริจาค ฿${fmt(Math.round(donateCap/2))} ให้สถาบันการศึกษา/กีฬาที่ร่วมโครงการ ลดหย่อนได้ ฿${fmt(Math.round(donateCap))}`,
+      saving:taxSave
+    });
+  }
+
+  // บุตร
+  tips.push({
+    icon:'👨‍👩‍👧‍👦',priority:7,
+    title:'ลดหย่อนบุตร ฿30,000/คน (บุตรคนที่2+เกิดปี2561: ฿60,000)',
+    detail:'ถ้ามีบุตรที่อยู่ในเกณฑ์ อย่าลืมใส่ในช่อง "ค่าลดหย่อนอื่น ๆ" เพิ่มไปในการคำนวณรอบถัดไป',
+    saving:null
+  });
+
+  return tips.slice(0,5);
+}
+
+function renderSmartTips(r){
+  const tips=buildPersonalizedTips(r);
+  document.getElementById('ai-tips').innerHTML=tips.map(t=>`
+    <div class="ai-tip">
+      <div class="tip-icon">${t.icon}</div>
+      <div class="tip-content">
+        <h4>${t.title}</h4>
+        <p>${t.detail}</p>
+        ${t.saving&&t.saving>100?`<div class="tip-save">💰 ประหยัดภาษีได้ประมาณ ฿${fmt(Math.round(t.saving))}/ปี</div>`:''}
+      </div>
+    </div>
+  `).join('');
+}
+
+// =============================================
+// ===== 10. AI Q&A with Fallback (ข้อ 2) =====
+// =============================================
+let aiCallCount=0;
+const AI_RATE_LIMIT=10;
+
+async function askAI(){
+  const q=document.getElementById('ai-question').value.trim();
+  if(!q){showToast('กรุณาพิมพ์คำถาม','⚠️');return;}
+  if(!lastResult){showToast('กรุณาคำนวณภาษีก่อน','⚠️');return;}
+  if(aiCallCount>=AI_RATE_LIMIT){
+    showToast('ใช้งาน AI เต็มแล้ว กรุณารีเฟรชหน้า','⚠️');
+    return;
+  }
+
+  aiCallCount++;
+  const resp=document.getElementById('ai-response');
+  resp.className='ai-response visible';
+  resp.innerHTML='<div class="ai-loading"><div class="dot-anim"><span></span><span></span><span></span></div>&nbsp;Smart Advisor กำลังวิเคราะห์...</div>';
+
+  const r=lastResult;
+  const systemPrompt=`คุณคือ Smart Tax Advisor ผู้เชี่ยวชาญภาษีเงินได้บุคคลธรรมดาไทย ตอบเป็นภาษาไทย สั้น กระชับ ใช้ bullet points และตัวเลขที่ชัดเจน
+
+ข้อมูลกฎหมายปีภาษี 2569: Thai ESG ลดหย่อนได้ 30% ของรายได้ สูงสุด 300,000 บาท (เพดานแยกต่างหาก ไม่รวมกับ RMF/PVD) | RMF+PVD รวม 30% ของรายได้ สูงสุด 500,000 บาท | SSF ยกเลิกแล้ว ให้แนะนำ Thai ESG แทน
+
+โปรไฟล์ผู้ใช้:
+- อาชีพ: ${OCCUPATION_LABELS[r.occ]}
+- รายได้/ปี: ฿${fmt(r.income)}
+- ค่าใช้จ่ายหัก: ฿${fmt(r.deductions.expense)} (${r.occ})
+- ลดหย่อนส่วนตัว: ฿${fmt(r.deductions.personal)}
+- ประกันชีวิต: ฿${fmt(r.deductions.insLife)}
+- ประกันสุขภาพ: ฿${fmt(r.deductions.insHealth)}
+- Thai ESG: ฿${fmt(r.deductions.thaiesg||0)}
+- กองทุน RMF/PVD: ฿${fmt(r.deductions.fund)}
+- ดอกเบี้ยบ้าน: ฿${fmt(r.deductions.home)}
+- รายได้สุทธิ: ฿${fmt(r.netIncome)}
+- ภาษีที่ต้องจ่าย: ฿${fmt(r.tax)}
+- อัตราภาษีที่แท้จริง: ${r.effRate.toFixed(2)}%
+
+ตอบตรงประเด็น ให้ตัวเลขที่คำนวณจากข้อมูลจริง ไม่ต้องพูดถึงข้อจำกัดของตัวเอง`;
+
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        system:systemPrompt,
+        messages:[{role:'user',content:q}]
+      })
+    });
+    if(!res.ok)throw new Error('API Error '+res.status);
+    const data=await res.json();
+    const text=data.content?.map(c=>c.text||'').join('')||'ไม่สามารถรับคำตอบได้';
+    document.getElementById('ai-mode-badge').className='ai-mode-badge badge-api';
+    document.getElementById('ai-mode-badge').textContent='AI Mode';
+    resp.innerHTML=`<strong style="color:var(--accent);font-size:12px;">🧠 Smart Tax Advisor</strong><br><br>${text.replace(/\n/g,'<br>')}`;
+  }catch(e){
+    resp.innerHTML=getSmartFallback(q,r);
+  }
+  document.getElementById('ai-question').value='';
+}
+
+function getSmartFallback(q,r){
+  const lq=q.toLowerCase();
+  const effR=r.effRate;
+  const prefix='<strong style="color:var(--accent2);font-size:12px;">🧠 Smart Tax Advisor</strong><br><br>';
+
+  if(lq.includes('thai esg')||lq.includes('thaiesg')||lq.includes('esg')||lq.includes('rmf')||lq.includes('กองทุน')){
+    const thaiesgCap=Math.min(r.income*0.30,300000);
+    const thaiesgUsed=r.deductions.thaiesg||0;
+    const thaiesgRoom=Math.max(0,thaiesgCap-thaiesgUsed);
+    const rmfCap=Math.min(r.income*0.30,500000);
+    const rmfRoom=Math.max(0,rmfCap-r.deductions.fund);
+    const taxSaveThai=thaiesgRoom*effR/100;
+    const taxSaveRmf=rmfRoom*effR/100;
+    return prefix+`<strong>วิเคราะห์ Thai ESG / RMF สำหรับคุณ:</strong><br>
+• <strong>Thai ESG</strong> (เพดานแยก): เพดาน ${fmt(Math.round(thaiesgCap))} บาท | ใช้ไป ${fmt(thaiesgUsed)} บาท | เหลือ <strong>฿${fmt(Math.round(thaiesgRoom))}</strong><br>
+• <strong>RMF/PVD</strong>: เพดาน ${fmt(Math.round(rmfCap))} บาท | ใช้ไป ${fmt(r.deductions.fund)} บาท | เหลือ <strong>฿${fmt(Math.round(rmfRoom))}</strong><br>
+• ถ้าลงทุน Thai ESG เต็ม ประหยัดภาษีได้ <strong>฿${fmt(Math.round(taxSaveThai))}/ปี</strong><br>
+• ถ้าลงทุน RMF เต็ม ประหยัดภาษีได้ <strong>฿${fmt(Math.round(taxSaveRmf))}/ปี</strong><br><br>
+💡 Thai ESG ไม่มีข้อกำหนดระยะเวลาขั้นต่ำในการถือ (ตามกฎหมาย 2569)`;
+  }
+
+  if(lq.includes('ssf')){
+    return prefix+`<strong>เกี่ยวกับ SSF:</strong><br>
+• SSF ถูกยกเลิกสิทธิ์ลดหย่อนสำหรับปีภาษี 2569 แล้ว<br>
+• แนะนำให้ใช้ <strong>Thai ESG</strong> แทน: ลดหย่อนได้ 30% ของรายได้ สูงสุด 300,000 บาท<br>
+• เพดาน Thai ESG แยกจาก RMF/PVD ทำให้ลดหย่อนได้มากขึ้น`;
+  }
+
+  if(lq.includes('ประกัน')){
+    const lifeRoom=100000-r.deductions.insLife;
+    const healthRoom=25000-r.deductions.insHealth;
+    return prefix+`<strong>สิทธิ์ประกันที่เหลือ:</strong><br>
+• ประกันชีวิต: ใช้ ฿${fmt(r.deductions.insLife)} เหลืออีก <strong>฿${fmt(lifeRoom)}</strong> (เพดาน 100K)<br>
+• ประกันสุขภาพ: ใช้ ฿${fmt(r.deductions.insHealth)} เหลืออีก <strong>฿${fmt(healthRoom)}</strong> (เพดาน 25K)<br>
+• รวมประหยัดภาษีได้อีก ฿${fmt(Math.round((lifeRoom+healthRoom)*effR/100))}/ปี<br><br>
+💡 ซื้อประกันสุขภาพก่อน ROI ต่อปีสูงกว่า`;
+  }
+
+  if(lq.includes('บริจาค')){
+    const donCap=r.netIncome*0.10;
+    return prefix+`<strong>การบริจาคสำหรับคุณ:</strong><br>
+• รายได้สุทธิ ฿${fmt(r.netIncome)} → บริจาคลดหย่อนได้สูงสุด <strong>฿${fmt(Math.round(donCap))}</strong><br>
+• บริจาคเพื่อการศึกษา/กีฬา: ได้ <strong>2 เท่า</strong> (ใช้สิทธิ์ ฿${fmt(Math.round(donCap))} จ่ายจริง ฿${fmt(Math.round(donCap/2))})<br>
+• ประหยัดภาษีประมาณ <strong>฿${fmt(Math.round(donCap*effR/100))}/ปี</strong>`;
+  }
+
+  if(lq.includes('ลดหย่อน')||lq.includes('ประหยัด')||lq.includes('วิธี')){
+    const thaiesgRoom=Math.max(0,Math.min(r.income*0.30,300000)-(r.deductions.thaiesg||0));
+    const lifeRoom=Math.max(0,100000-r.deductions.insLife);
+    const healthRoom=Math.max(0,25000-r.deductions.insHealth);
+    const total=(thaiesgRoom+lifeRoom+healthRoom)*effR/100;
+    return prefix+`<strong>สรุปช่องว่างลดหย่อนสำหรับคุณ:</strong><br>
+• Thai ESG: เหลืออีก <strong>฿${fmt(Math.round(thaiesgRoom))}</strong><br>
+• ประกันชีวิต: เหลืออีก <strong>฿${fmt(lifeRoom)}</strong><br>
+• ประกันสุขภาพ: เหลืออีก <strong>฿${fmt(healthRoom)}</strong><br>
+• รวมประหยัดภาษีได้อีก <strong>฿${fmt(Math.round(total))}/ปี</strong> (อัตรา ${effR.toFixed(1)}%)`;
+  }
+
+  return prefix+`<strong>สรุปภาษีของคุณ:</strong><br>
+• รายได้: ฿${fmt(r.income)} | ภาษี: ฿${fmt(r.tax)}<br>
+• อัตราแท้จริง: <strong>${effR.toFixed(2)}%</strong><br>
+• แนะนำให้เพิ่มลดหย่อน Thai ESG/RMF และประกันสุขภาพก่อนเป็นอันดับแรก<br><br>
+💡 ลองถามเฉพาะเจาะจง เช่น "ซื้อ Thai ESG ได้เท่าไร" หรือ "บริจาคช่วยลดได้แค่ไหน"`;
+}
+
+// =============================================
+// ===== 11. HISTORY (ข้อ 4 - localStorage) =====
+// =============================================
+function saveHistory(r){
+  const key=getUserKey();
+  let hist=JSON.parse(localStorage.getItem(key)||'[]');
+  hist.unshift({
+    date:new Date().toLocaleDateString('th-TH',{year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}),
+    income:r.income,tax:r.tax,effRate:r.effRate,occ:r.occ,
+    netIncome:r.netIncome,totalDed:r.totalDeduction
+  });
+  hist=hist.slice(0,20);
+  localStorage.setItem(key,JSON.stringify(hist));
+}
+
+function renderHistory(){
+  const key=getUserKey();
+  const hist=JSON.parse(localStorage.getItem(key)||'[]');
+  const el=document.getElementById('history-list');
+  if(!hist.length){
+    el.innerHTML='<div class="history-empty">📊 ยังไม่มีประวัติการคำนวณ<br><small>กดคำนวณภาษีเพื่อเริ่มต้น</small></div>';
+    return;
+  }
+  el.innerHTML=hist.map((h,i)=>`
+    <div class="history-item">
+      <div>
+        <div style="font-size:13px;font-weight:700;color:var(--text);">${OCCUPATION_LABELS[h.occ]||h.occ}</div>
+        <div class="history-meta">${h.date}</div>
+      </div>
+      <div class="history-amounts">
+        <div class="history-amount">
+          <div class="label">รายได้/ปี</div>
+          <div class="val">฿${fmtShort(h.income)}</div>
+        </div>
+        <div class="history-amount">
+          <div class="label">ภาษี</div>
+          <div class="val" style="color:var(--danger);">฿${fmtShort(h.tax)}</div>
+        </div>
+        <div class="history-amount">
+          <div class="label">อัตราแท้จริง</div>
+          <div class="val" style="color:var(--accent);">${h.effRate.toFixed(1)}%</div>
+        </div>
+      </div>
+      <button class="btn-del" onclick="deleteHistory(${i})" title="ลบ">✕</button>
+    </div>
+  `).join('');
+}
+
+function deleteHistory(i){
+  const key=getUserKey();
+  let hist=JSON.parse(localStorage.getItem(key)||'[]');
+  hist.splice(i,1);
+  localStorage.setItem(key,JSON.stringify(hist));
+  renderHistory();
+  showToast('ลบรายการแล้ว','🗑');
+}
+
+function clearHistory(){
+  if(!confirm('ยืนยันลบประวัติทั้งหมด?'))return;
+  localStorage.removeItem(getUserKey());
+  renderHistory();
+  showToast('ล้างประวัติเรียบร้อย','🗑');
+}
+
+// =============================================
+// ===== 12. EXPORT (ข้อ 6) =====
+// =============================================
+function exportExcel(){
+  if(!lastResult){showToast('กรุณาคำนวณภาษีก่อน','⚠️');return;}
+  const r=lastResult;
+  const wb=XLSX.utils.book_new();
+  const today=new Date().toLocaleDateString('th-TH');
+
+  const summary=[
+    ['Smart Tax Planner — รายงานภาษีเงินได้บุคคลธรรมดา'],
+    ['วันที่: '+today+' | ปีภาษี: 2569 | อาชีพ: '+OCCUPATION_LABELS[r.occ]],
+    ['⚠️ ใช้เพื่อวางแผนภาษีเบื้องต้นเท่านั้น ไม่ใช่คำแนะนำอย่างเป็นทางการ'],
+    [],
+    ['สรุปผลการคำนวณ',''],
+    ['รายการ','จำนวน (บาท)'],
+    ['รายได้ต่อปี',r.income],
+    ['หักค่าใช้จ่าย ('+r.occ+')',r.deductions.expense],
+    ['ลดหย่อนส่วนตัว',r.deductions.personal],
+    ['ประกันชีวิต',r.deductions.insLife],
+    ['ประกันสุขภาพ',r.deductions.insHealth],
+    ['Thai ESG',r.deductions.thaiesg||0],
+    ['กองทุน RMF/PVD',r.deductions.fund],
+    ['ดอกเบี้ยบ้าน',r.deductions.home],
+    ['ลดหย่อนอื่น ๆ',r.deductions.other],
+    ['ค่าลดหย่อนรวม',r.totalDeduction],
+    ['รายได้สุทธิ',r.netIncome],
+    ['ภาษีที่ต้องชำระ',r.tax],
+    ['อัตราภาษีที่แท้จริง (%)',+r.effRate.toFixed(2)],
+    [],
+    ['ภาษีแยกตามขั้น'],
+    ['ช่วงรายได้สุทธิ','อัตรา (%)','ฐานภาษี','ภาษีขั้นนี้'],
+    ...r.breakdown.map(b=>[
+      fmt(b.min)+'–'+(b.max===Infinity?'∞':fmt(b.max)),
+      b.rate*100,Math.round(b.taxable),Math.round(b.taxInBracket)
+    ]),
+    [],
+    ['สร้างโดย Smart Tax Planner | rd.go.th']
+  ];
+
+  const ws=XLSX.utils.aoa_to_sheet(summary);
+  ws['!cols']=[{wch:35},{wch:20}];
+  XLSX.utils.book_append_sheet(wb,'สรุปภาษี 2569',ws);
+  XLSX.writeFile(wb,'SmartTaxPlanner_'+today.replace(/\//g,'-')+'.xlsx');
+  showToast('ดาวน์โหลด Excel สำเร็จ!','📊');
+}
+
+function exportPDF(){
+  if(!lastResult){showToast('กรุณาคำนวณภาษีก่อน','⚠️');return;}
+  const r=lastResult;
+  const today=new Date().toLocaleString('th-TH');
+  const w=window.open('','_blank');
+  if(!w){showToast('กรุณาอนุญาต Popup ก่อน','⚠️');return;}
+  w.document.write(`<!DOCTYPE html><html lang="th"><head>
+<meta charset="UTF-8">
+<title>รายงานภาษี — Smart Tax Planner</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Sarabun',sans-serif;background:#fff;color:#1a2235;padding:40px;max-width:780px;margin:0 auto;font-size:13px;}
+  .header{border-bottom:3px solid #00d4aa;padding-bottom:16px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:flex-end;}
+  .header h1{font-size:22px;font-weight:700;color:#00d4aa;}
+  .header p{font-size:11px;color:#8b98b0;margin-top:4px;}
+  .meta{font-size:11px;color:#8b98b0;text-align:right;}
+  .disclaimer{background:#fff9e6;border-left:3px solid #f7a24f;padding:10px 14px;margin-bottom:20px;font-size:12px;color:#8a6a00;border-radius:4px;}
+  .summary-box{background:#f0fef9;border:1px solid #00d4aa30;border-radius:8px;padding:20px;margin-bottom:20px;display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .sum-item .label{font-size:11px;color:#8b98b0;font-weight:600;text-transform:uppercase;letter-spacing:.3px;}
+  .sum-item .val{font-size:18px;font-weight:700;color:#1a2235;margin-top:2px;}
+  .sum-item.highlight .val{color:#f74f6a;font-size:22px;}
+  .sum-item.green .val{color:#00b894;}
+  h2{font-size:14px;font-weight:700;color:#1a2235;margin:20px 0 10px;border-left:3px solid #00d4aa;padding-left:10px;}
+  table{width:100%;border-collapse:collapse;font-size:12px;}
+  th{background:#f5f7fa;text-align:left;padding:9px 12px;font-weight:700;color:#5a6580;border-bottom:2px solid #e8edf5;}
+  td{padding:8px 12px;border-bottom:1px solid #f0f4f8;}
+  tr.active{background:#f0fef9;}
+  .rate-badge{background:#e0f7f0;color:#00b894;padding:2px 8px;border-radius:12px;font-weight:700;font-size:11px;}
+  .footer{margin-top:32px;border-top:1px solid #e8edf5;padding-top:16px;font-size:11px;color:#8b98b0;text-align:center;}
+  .tax-big{font-size:28px;font-weight:700;color:#f74f6a;}
+  @media print{body{padding:20px}button{display:none}}
+<\/style>
+<\/head><body>
+<div class="header">
+  <div>
+    <h1>💰 Smart Tax Planner</h1>
+    <p>รายงานภาษีเงินได้บุคคลธรรมดา · ปีภาษี 2569 · ประเทศไทย</p>
+  </div>
+  <div class="meta">สร้างเมื่อ: ${today}<br>อาชีพ: ${OCCUPATION_LABELS[r.occ]}</div>
+</div>
+<div class="disclaimer">⚠️ <strong>ข้อจำกัด:</strong> รายงานนี้ใช้เพื่อวางแผนภาษีเบื้องต้นเท่านั้น ไม่ใช่คำแนะนำทางภาษีอย่างเป็นทางการ ควรปรึกษาผู้เชี่ยวชาญหรือ rd.go.th ก่อนยื่นแบบ</div>
+<div class="summary-box">
+  <div class="sum-item"><div class="label">รายได้ต่อปี</div><div class="val">฿${fmt(r.income)}</div></div>
+  <div class="sum-item"><div class="label">ค่าลดหย่อนรวม</div><div class="val green">฿${fmt(r.totalDeduction)}</div></div>
+  <div class="sum-item"><div class="label">รายได้สุทธิ</div><div class="val">฿${fmt(r.netIncome)}</div></div>
+  <div class="sum-item"><div class="label">อัตราภาษีที่แท้จริง</div><div class="val green">${r.effRate.toFixed(2)}%</div></div>
+  <div class="sum-item highlight" style="grid-column:span 2;text-align:center;">
+    <div class="label" style="text-align:center">ภาษีที่ต้องชำระทั้งปี</div>
+    <div class="tax-big">฿${fmt(r.tax)}</div>
+    <div style="font-size:12px;color:#8b98b0;margin-top:4px;">≈ ฿${fmt(Math.round(r.tax/12))} / เดือน</div>
+  </div>
+</div>
+<h2>รายละเอียดค่าลดหย่อน</h2>
+<table>
+  <tr><th>รายการ</th><th style="text-align:right">จำนวน (บาท)</th></tr>
+  <tr><td>ค่าใช้จ่าย (${r.occ})</td><td style="text-align:right">฿${fmt(r.deductions.expense)}</td></tr>
+  <tr><td>ลดหย่อนส่วนตัว</td><td style="text-align:right">฿${fmt(r.deductions.personal)}</td></tr>
+  <tr><td>ประกันชีวิต</td><td style="text-align:right">฿${fmt(r.deductions.insLife)}</td></tr>
+  <tr><td>ประกันสุขภาพ</td><td style="text-align:right">฿${fmt(r.deductions.insHealth)}</td></tr>
+  <tr><td>Thai ESG</td><td style="text-align:right">฿${fmt(r.deductions.thaiesg||0)}</td></tr>
+  <tr><td>กองทุน RMF/PVD</td><td style="text-align:right">฿${fmt(r.deductions.fund)}</td></tr>
+  <tr><td>ดอกเบี้ยบ้าน</td><td style="text-align:right">฿${fmt(r.deductions.home)}</td></tr>
+  <tr><td>อื่น ๆ</td><td style="text-align:right">฿${fmt(r.deductions.other)}</td></tr>
+  <tr style="font-weight:700;background:#f5f7fa;"><td>รวมค่าลดหย่อน</td><td style="text-align:right;color:#00b894;">฿${fmt(r.totalDeduction)}</td></tr>
+</table>
+<h2>ภาษีแยกตามขั้น (Progressive Tax)</h2>
+<table>
+  <tr><th>ช่วงรายได้สุทธิ (บาท)</th><th>อัตรา</th><th style="text-align:right">ฐานภาษี (บาท)</th><th style="text-align:right">ภาษีขั้นนี้ (บาท)</th></tr>
+  ${r.breakdown.map(b=>`
+    <tr class="${b.taxInBracket>0?'active':''}">
+      <td>${fmt(b.min)} – ${b.max===Infinity?'∞':fmt(b.max)}</td>
+      <td><span class="rate-badge">${(b.rate*100).toFixed(0)}%</span></td>
+      <td style="text-align:right">฿${fmt(b.taxable)}</td>
+      <td style="text-align:right;font-weight:700">฿${fmt(b.taxInBracket)}</td>
+    </tr>
+  `).join('')}
+</table>
+<div class="footer">สร้างโดย Smart Tax Planner · ข้อมูลตามกฎหมายภาษีเงินได้บุคคลธรรมดาไทย ปี 2569 · rd.go.th</div>
+<br><button onclick="window.print()" style="padding:10px 20px;background:#00d4aa;color:#0a1a14;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">🖨️ พิมพ์ / บันทึก PDF<\/button>
+<\/body><\/html>`);
+  w.document.close();
+  showToast('เปิดหน้า PDF แล้ว กดปุ่มพิมพ์เพื่อบันทึก','📄');
+}
+
+// =============================================
+// ===== 13. FAQ =====
+// =============================================
+function renderFAQ(){
+  document.getElementById('faq-list').innerHTML=FAQ_DATA.map((f,i)=>`
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFAQ(${i})" id="faq-q-${i}">
+        <span>${f.q}</span><span id="faq-arrow-${i}">▸</span>
+      </div>
+      <div class="faq-a" id="faq-a-${i}">${f.a}</div>
+    </div>
+  `).join('');
+}
+function toggleFAQ(i){
+  const a=document.getElementById('faq-a-'+i);
+  const q=document.getElementById('faq-q-'+i);
+  const arrow=document.getElementById('faq-arrow-'+i);
+  const isOpen=a.classList.contains('open');
+  document.querySelectorAll('.faq-a').forEach(el=>el.classList.remove('open'));
+  document.querySelectorAll('.faq-q').forEach(el=>el.classList.remove('open'));
+  document.querySelectorAll('[id^="faq-arrow-"]').forEach(el=>el.textContent='▸');
+  if(!isOpen){a.classList.add('open');q.classList.add('open');arrow.textContent='▾';}
+}
+
+// =============================================
+// ===== 14. TOAST =====
+// =============================================
+let toastTimer=null;
+function showToast(msg,icon='✅'){
+  clearTimeout(toastTimer);
+  const t=document.getElementById('toast');
+  document.getElementById('toast-msg').textContent=msg;
+  document.getElementById('toast-icon').textContent=icon;
+  t.classList.add('show');
+  toastTimer=setTimeout(()=>t.classList.remove('show'),3200);
+}
+
+// =============================================
+// ===== 15. INIT =====
+// =============================================
+
+// =============================================
+// ===== CHECKBOX DEDUCTIONS =====
+// =============================================
+const CHECK_STATE = {
+  child:    { count:0, perPerson:30000, max:Infinity },
+  parent:   { count:0, perPerson:30000, max:4 },
+  disabled: { count:0, perPerson:60000, max:Infinity },
+  spouse:   { active:false, amount:60000 },
+};
+let donateType = 'edu'; // 'edu' = 2x, 'general' = 1x
+
+function toggleCheckItem(key){
+  if(key === 'spouse'){
+    CHECK_STATE.spouse.active = !CHECK_STATE.spouse.active;
+    const el = document.getElementById('ci-spouse');
+    el.classList.toggle('checked', CHECK_STATE.spouse.active);
+    document.getElementById('spouse-amt').textContent =
+      CHECK_STATE.spouse.active ? '฿60,000' : '฿0';
+  } else {
+    const s = CHECK_STATE[key];
+    if(s.count === 0){
+      s.count = 1;
+    } else {
+      s.count = 0;
+    }
+    document.getElementById(key+'-count').textContent = s.count;
+    updateCheckItem(key);
+  }
+  updateFamilyTotal();
+}
+
+function changeCount(key, delta){
+  const s = CHECK_STATE[key];
+  s.count = Math.max(0, Math.min(s.max, (s.count||0) + delta));
+  document.getElementById(key+'-count').textContent = s.count;
+  updateCheckItem(key);
+  updateFamilyTotal();
+}
+
+function updateCheckItem(key){
+  const s = CHECK_STATE[key];
+  const isActive = s.count > 0;
+  const el = document.getElementById('ci-'+key);
+  el.classList.toggle('checked', isActive);
+  let amt = 0;
+  if(key === 'child'){
+    // คนที่ 1 = 30,000, คนที่ 2+ (ถือว่าเกิดปี 2561+) = 60,000
+    if(s.count >= 1) amt += 30000;
+    if(s.count >= 2) amt += (s.count - 1) * 60000;
+  } else {
+    amt = s.count * s.perPerson;
+  }
+  document.getElementById(key+'-amt').textContent = amt > 0 ? '฿'+fmt(amt) : '฿0';
+  // update sub text
+  if(key === 'child' && s.count > 0){
+    document.getElementById('child-sub').textContent =
+      s.count === 1 ? '30,000 บาท (คนที่ 1)' :
+      `30,000 + ${fmt((s.count-1)*60000)} บาท (คนที่ 2+ ×60K)`;
+  }
+}
+
+function calcFamilyDed(){
+  const s = CHECK_STATE;
+  let child = 0;
+  if(s.child.count >= 1) child += 30000;
+  if(s.child.count >= 2) child += (s.child.count - 1) * 60000;
+  const parent   = s.parent.count * 30000;
+  const disabled = s.disabled.count * 60000;
+  const spouse   = s.spouse.active ? 60000 : 0;
+  return child + parent + disabled + spouse;
+}
+
+function updateFamilyTotal(){
+  const total = calcFamilyDed();
+  const box = document.getElementById('family-total-box');
+  box.style.display = total > 0 ? '' : 'none';
+  document.getElementById('family-total-val').textContent = '฿'+fmt(total);
+  syncOtherDed();
+}
+
+function setDonateType(type){
+  donateType = type;
+  document.getElementById('dt-edu').classList.toggle('active', type==='edu');
+  document.getElementById('dt-general').classList.toggle('active', type==='general');
+  calcDonate();
+}
+
+function calcDonate(){
+  const raw = Math.max(0, parseFloat(document.getElementById('donate-amount').value)||0);
+  const multiplier = donateType === 'edu' ? 2 : 1;
+  const deductible = raw * multiplier;
+  const box = document.getElementById('donate-total-box');
+  if(raw > 0){
+    box.style.display = '';
+    document.getElementById('donate-total-label').textContent =
+      donateType === 'edu'
+        ? `ลดหย่อนได้ (${raw.toLocaleString()} × 2)`
+        : 'ลดหย่อนได้ (1 เท่า)';
+    document.getElementById('donate-total-val').textContent = '฿'+fmt(deductible);
+  } else {
+    box.style.display = 'none';
+  }
+  syncOtherDed();
+}
+
+function calcDonateDeductible(){
+  const raw = Math.max(0, parseFloat(document.getElementById('donate-amount').value)||0);
+  const multiplier = donateType === 'edu' ? 2 : 1;
+  return raw * multiplier;
+}
+
+function syncOtherDed(){
+  const total = calcFamilyDed() + calcDonateDeductible();
+  document.getElementById('other-ded').value = total;
+}
+
+function calcOtherDed(){
+  return calcFamilyDed() + calcDonateDeductible();
+}
+
+initTheme();
+initAuth();
+renderOccBanner();
+renderHistory();
+renderFAQ();
+</script>
+<!-- ===== FIREBASE AUTH MODULE ===== -->
+<script type="module">
+// ============================================================
+// 🔥 FIREBASE CONFIG
+// ⚠️  แทนที่ค่าต่อไปนี้ด้วยข้อมูลจาก Firebase Console ของคุณ
+//     (ใช้ config เดียวกับ login.html)
+// ============================================================
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getAuth,
+  signOut,
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAVPNX6oQ_uPx9zSDKoUr767W0EOaufW7s",
+  authDomain: "tax-planer.firebaseapp.com",
+  projectId: "tax-planer",
+  storageBucket: "tax-planer.firebasestorage.app",
+  messagingSenderId: "232145883386",
+  appId: "1:232145883386:web:e78cdaaa7e11303c533943",
+  measurementId: "G-HW2KVTK9WW"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    document.getElementById('page-loader')?.classList.add('hide');
+    console.log("Login success", user.email);
+    if (typeof setLoggedInUser === 'function') setLoggedInUser(user);
+  } else {
+    window.location.replace('login.html');
+  }
+});
+
+window._firebaseSignOut = async () => {
+  try {
+    await signOut(auth);
+    window.location.replace('login.html');
+  } catch(e) {
+    console.error('Sign out error:', e);
+  }
+};
+</script>
+</body>
+</html>
